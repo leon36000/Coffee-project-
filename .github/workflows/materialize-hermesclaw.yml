@@ -1,0 +1,106 @@
+name: Materialize verified HermesClaw source
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - bootstrap/READY
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hermesclaw-source-materialization
+  cancel-in-progress: false
+
+jobs:
+  verify-and-materialize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout bootstrap repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust 1.97.1
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+          components: rustfmt, clippy
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+
+      - name: Install Tauri system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            librsvg2-dev \
+            patchelf \
+            rsync \
+            xz-utils
+
+      - name: Reconstruct and validate source archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t chunks < <(find bootstrap -maxdepth 1 -type f -name 'xz-*.b64' | sort)
+          test "${#chunks[@]}" -eq 8
+          cat "${chunks[@]}" > /tmp/hermesclaw-baseline.b64
+          base64 --decode /tmp/hermesclaw-baseline.b64 > /tmp/baseline.tar.xz
+          cp bootstrap/BASELINE_SHA256SUMS /tmp/BASELINE_SHA256SUMS
+          (cd /tmp && sha256sum --check BASELINE_SHA256SUMS)
+          xz --test /tmp/baseline.tar.xz
+
+          cat bootstrap/overlay-*.b64 > /tmp/overlay.b64
+          base64 --decode /tmp/overlay.b64 > /tmp/overlay.tar.xz
+          cp bootstrap/OVERLAY_SHA256SUMS /tmp/OVERLAY_SHA256SUMS
+          (cd /tmp && sha256sum --check OVERLAY_SHA256SUMS)
+          xz --test /tmp/overlay.tar.xz
+
+          mkdir -p /tmp/hermesclaw-root
+          tar -xJf /tmp/baseline.tar.xz -C /tmp/hermesclaw-root
+          tar -xJf /tmp/overlay.tar.xz -C /tmp/hermesclaw-root
+          test "$(find /tmp/hermesclaw-root -type f | wc -l)" -eq "$(cat bootstrap/EXPECTED_FILE_COUNT)"
+          (cd /tmp/hermesclaw-root && sha256sum --check "$GITHUB_WORKSPACE/bootstrap/FINAL_FILE_MANIFEST.sha256")
+          test "$(cat bootstrap/EXPECTED_LOCAL_COMMIT)" = "a250eec286e09d20651a796532bcee4a45d1d240"
+          python3 /tmp/hermesclaw-root/source/raglite/validate_source.py
+
+      - name: Verify Rust proof gates
+        working-directory: /tmp/hermesclaw-root
+        run: |
+          cargo fmt --all --check
+          cargo test --workspace --exclude hermesclaw-desktop --locked
+          cargo clippy --workspace --exclude hermesclaw-desktop --all-targets --locked -- -D warnings
+
+      - name: Verify web proof gates
+        working-directory: /tmp/hermesclaw-root
+        run: |
+          npm --prefix apps/web ci
+          npm run test:web
+          npm run lint:web
+          npm run build:web
+
+      - name: Verify Tauri desktop compile gate
+        working-directory: /tmp/hermesclaw-root
+        run: cargo check -p hermesclaw-desktop --locked
+
+      - name: Materialize verified source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_local_commit="$(cat bootstrap/EXPECTED_LOCAL_COMMIT)"
+          rsync -a --delete --exclude='.git' /tmp/hermesclaw-root/ "$GITHUB_WORKSPACE/"
+          python3 source/raglite/validate_source.py
+          git diff --check
+          git config user.name "HermesClaw Baseline Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: materialize verified HermesClaw baseline ${expected_local_commit:0:12}"
+          git push origin HEAD:main
