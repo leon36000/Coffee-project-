@@ -6,6 +6,7 @@ on:
       - main
       - agent/materialize-baseline-v5
       - agent/fix-materialization-index
+      - agent/fix-workflow-permission-materialization
     paths:
       - bootstrap/v5/**
       - .github/workflows/materialize-hermesclaw-v5.yml
@@ -105,7 +106,7 @@ jobs:
         working-directory: /tmp/hermesclaw-root
         run: cargo check -p hermesclaw-desktop --locked
 
-      - name: Materialize verified source on main
+      - name: Stage verified non-workflow source on main
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('bootstrap/v5/READY') != ''
         shell: bash
         env:
@@ -118,19 +119,28 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
 
           rm -f "$GIT_INDEX_FILE"
-          git read-tree --empty
-          git --work-tree=/tmp/hermesclaw-root add --all
-          git --work-tree=/tmp/hermesclaw-root diff --cached --check
+          git read-tree "$GITHUB_SHA^{tree}"
+
+          while IFS= read -r -d '' file; do
+            relative_path="${file#/tmp/hermesclaw-root/}"
+            if [[ "$relative_path" == ".github/workflows/ci.yml" ]]; then
+              continue
+            fi
+            blob_sha="$(git hash-object -w -- "$file")"
+            git update-index --add --cacheinfo 100644 "$blob_sha" "$relative_path"
+          done < <(find /tmp/hermesclaw-root -type f -print0 | sort -z)
 
           published_tree="$(git write-tree)"
-          published_file_count="$(git ls-tree -r --name-only "$published_tree" | wc -l | tr -d ' ')"
-          test "$published_file_count" -eq 85
-          ! git ls-tree -r --name-only "$published_tree" | grep -q '^bootstrap/'
-          test "$(git ls-tree -r --name-only "$published_tree" | grep -c '^\.github/workflows/ci\.yml$')" -eq 1
+          test "$(git ls-tree -r --name-only "$published_tree" | grep -c '^source/00_PROJECT_CONSTITUTION\.md$')" -eq 1
+          test "$(git ls-tree -r --name-only "$published_tree" | grep -c '^crates/hc-agent/src/lib\.rs$')" -eq 1
+          test "$(git ls-tree -r --name-only "$published_tree" | grep -c '^apps/web/src/App\.tsx$')" -eq 1
+          test "$(git ls-tree -r --name-only "$published_tree" | grep -c '^bootstrap/v5/READY$')" -eq 1
+          test "$(git ls-tree -r --name-only "$published_tree" | grep -c '^\.github/workflows/ci\.yml$')" -eq 0
 
           published_commit="$({
-            printf '%s\n\n' "chore: materialize verified HermesClaw baseline ${expected_local_commit:0:12}"
+            printf '%s\n\n' "chore: stage verified HermesClaw source ${expected_local_commit:0:12}"
             printf 'Source baseline: %s\n' "$expected_local_commit"
+            printf 'The canonical CI workflow is installed separately by the GitHub integration.\n'
           } | git commit-tree "$published_tree" -p "$GITHUB_SHA")"
 
           git push origin "${published_commit}:refs/heads/main"
