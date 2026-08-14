@@ -1,0 +1,119 @@
+name: Verify and materialize HermesClaw baseline v5
+
+on:
+  push:
+    branches:
+      - main
+      - agent/materialize-baseline-v5
+    paths:
+      - bootstrap/v5/**
+      - .github/workflows/materialize-hermesclaw-v5.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - bootstrap/v5/**
+      - .github/workflows/materialize-hermesclaw-v5.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hermesclaw-baseline-v5-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-and-materialize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify payload fragments
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd bootstrap/v5
+          sha256sum --check CHUNKS.sha256
+          mapfile -t chunks < <(find . -maxdepth 1 -type f -name 'baseline-v5-*.b64' -print | sort)
+          test "${#chunks[@]}" -eq 14
+          total_size="$(cat "${chunks[@]}" | wc -c)"
+          test "$total_size" -eq 151072
+          cat "${chunks[@]}" > /tmp/hermesclaw-baseline.b64
+
+      - name: Reconstruct and verify source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 --decode /tmp/hermesclaw-baseline.b64 > /tmp/hermesclaw-baseline.tar.xz
+          (cd /tmp && sha256sum --check "$GITHUB_WORKSPACE/bootstrap/v5/BASELINE.sha256")
+          xz --test /tmp/hermesclaw-baseline.tar.xz
+          mkdir -p /tmp/hermesclaw-root
+          tar -xJf /tmp/hermesclaw-baseline.tar.xz --strip-components=1 -C /tmp/hermesclaw-root
+          test "$(find /tmp/hermesclaw-root -type f | wc -l)" -eq 85
+          (cd /tmp/hermesclaw-root && sha256sum --check "$GITHUB_WORKSPACE/bootstrap/FINAL_FILE_MANIFEST.sha256")
+          test "$(cat "$GITHUB_WORKSPACE/bootstrap/EXPECTED_LOCAL_COMMIT")" = "d79d2ebb3c7a0092f833d5883f1522954566e031"
+          python3 /tmp/hermesclaw-root/source/raglite/validate_source.py
+
+      - name: Install Rust 1.97.1
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+          components: rustfmt, clippy
+
+      - name: Configure Node.js 22.16.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+
+      - name: Install Tauri system libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            patchelf \
+            rsync \
+            xz-utils
+
+      - name: Verify Rust proof gates
+        working-directory: /tmp/hermesclaw-root
+        run: |
+          cargo fmt --all --check
+          cargo test --workspace --exclude hermesclaw-desktop --locked
+          cargo clippy --workspace --exclude hermesclaw-desktop --all-targets --locked -- -D warnings
+
+      - name: Verify web proof gates
+        working-directory: /tmp/hermesclaw-root
+        run: |
+          npm --prefix apps/web ci
+          npm run test:web
+          npm run lint:web
+          npm run build:web
+
+      - name: Verify Tauri desktop compile gate
+        working-directory: /tmp/hermesclaw-root
+        run: cargo check -p hermesclaw-desktop --locked
+
+      - name: Materialize verified source on main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('bootstrap/v5/READY') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          rsync -a --delete --exclude='.git' /tmp/hermesclaw-root/ "$GITHUB_WORKSPACE/"
+          python3 source/raglite/validate_source.py
+          git diff --check
+          git config user.name "HermesClaw Baseline Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: materialize verified HermesClaw baseline d79d2ebb3c7a"
+          git push origin HEAD:main
