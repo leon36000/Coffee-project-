@@ -202,6 +202,22 @@ mod tests {
     }
 
     #[test]
+    fn workspace_read_constructor_is_low_risk_read_only() {
+        let call = ToolCall::workspace_read("call-read", "docs/notes.md");
+
+        assert_eq!(call.id, "call-read");
+        assert_eq!(call.capability_id, "workspace.read");
+        assert_eq!(
+            call.arguments,
+            serde_json::json!({"path": "docs/notes.md"})
+        );
+        assert_eq!(call.risk, RiskClass::Low);
+        assert_eq!(call.side_effect, SideEffectClass::None);
+        assert_eq!(call.provenance.source, "model");
+        assert_eq!(call.provenance.trust, TrustLevel::ModelGenerated);
+    }
+
+    #[test]
     fn mission_state_serializes_to_stable_snake_case() {
         let encoded =
             serde_json::to_string(&MissionState::WaitingApproval).expect("serialize state");
