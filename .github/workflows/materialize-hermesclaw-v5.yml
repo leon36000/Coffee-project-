@@ -113,7 +113,7 @@ jobs:
           GIT_INDEX_FILE: /tmp/hermesclaw-materialize.index
         run: |
           set -euo pipefail
-          expected_local_commit="$(cat bootstrap/v5/EXPECTED_LOCAL_COMMIT)"
+          expected_local_commit="$(cat bootstrap/EXPECTED_LOCAL_COMMIT)"
 
           git config user.name "HermesClaw Baseline Bot"
           git config user.email "actions@users.noreply.github.com"
