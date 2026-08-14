@@ -2,7 +2,7 @@ use hc_agent::{ChatInput, ChatOutcome, TurnCoordinator};
 use hc_domain::{AutonomyProfile, EvidenceRecord, TraceId};
 use hc_models::DeterministicProvider;
 use hc_state::EvidenceStore;
-use hc_tools::{CapabilityRegistry, WorkspaceListCapability};
+use hc_tools::{CapabilityRegistry, WorkspaceListCapability, WorkspaceReadCapability};
 use std::{env, path::PathBuf, str::FromStr, sync::Arc};
 use tauri::{Manager, State};
 
@@ -49,9 +49,10 @@ pub fn run() {
                 .unwrap_or_else(|| data_dir.join("hermesclaw.db"));
 
             let mut registry = CapabilityRegistry::new();
-            registry.register(WorkspaceListCapability::new(workspace)?);
+            registry.register(WorkspaceListCapability::new(&workspace)?);
+            registry.register(WorkspaceReadCapability::new(&workspace)?);
             let coordinator = TurnCoordinator::new(
-                DeterministicProvider,
+                DeterministicProvider::default(),
                 registry,
                 EvidenceStore::open(database)?,
             );

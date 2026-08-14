@@ -59,39 +59,88 @@ pub trait ModelProvider: Send + Sync {
     async fn next_turn(&self, request: ModelRequest) -> Result<ModelOutput, ModelError>;
 }
 
-#[derive(Default)]
-pub struct DeterministicProvider;
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum DeterministicScenario {
+    WorkspaceList { path: String },
+    WorkspaceRead { path: String },
+}
+
+#[derive(Clone, Debug)]
+pub struct DeterministicProvider {
+    scenario: DeterministicScenario,
+}
+
+impl Default for DeterministicProvider {
+    fn default() -> Self {
+        Self {
+            scenario: DeterministicScenario::WorkspaceList { path: ".".into() },
+        }
+    }
+}
+
+impl DeterministicProvider {
+    pub fn workspace_read(path: impl Into<String>) -> Self {
+        Self {
+            scenario: DeterministicScenario::WorkspaceRead { path: path.into() },
+        }
+    }
+}
 
 #[async_trait]
 impl ModelProvider for DeterministicProvider {
     async fn next_turn(&self, request: ModelRequest) -> Result<ModelOutput, ModelError> {
         if let Some(result) = request.latest_tool_result() {
-            let entries = result
-                .output
-                .get("entries")
-                .and_then(Value::as_array)
-                .map(|entries| {
-                    entries
-                        .iter()
-                        .filter_map(Value::as_str)
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                })
-                .unwrap_or_default();
-            let entries = if entries.is_empty() {
-                "(empty)"
-            } else {
-                &entries
+            return match result.capability_id.as_str() {
+                "workspace.list" => {
+                    let entries = result
+                        .output
+                        .get("entries")
+                        .and_then(Value::as_array)
+                        .map(|entries| {
+                            entries
+                                .iter()
+                                .filter_map(Value::as_str)
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        })
+                        .unwrap_or_default();
+                    let entries = if entries.is_empty() {
+                        "(empty)"
+                    } else {
+                        &entries
+                    };
+                    Ok(ModelOutput::FinalText(format!(
+                        "Workspace entries: {entries}"
+                    )))
+                }
+                "workspace.read" => {
+                    let path = result.output.get("path").and_then(Value::as_str).ok_or(
+                        ModelError::InvalidResponse(
+                            "workspace.read result requires path and content",
+                        ),
+                    )?;
+                    let content = result.output.get("content").and_then(Value::as_str).ok_or(
+                        ModelError::InvalidResponse(
+                            "workspace.read result requires path and content",
+                        ),
+                    )?;
+                    Ok(ModelOutput::FinalText(format!(
+                        "Contents of {path}:\n{content}"
+                    )))
+                }
+                other => Err(ModelError::UnsupportedTool(other.to_owned())),
             };
-            return Ok(ModelOutput::FinalText(format!(
-                "Workspace entries: {entries}"
-            )));
         }
 
-        Ok(ModelOutput::ToolCalls(vec![ToolCall::workspace_list(
-            "deterministic-call-1",
-            ".",
-        )]))
+        let call = match &self.scenario {
+            DeterministicScenario::WorkspaceList { path } => {
+                ToolCall::workspace_list("deterministic-call-1", path)
+            }
+            DeterministicScenario::WorkspaceRead { path } => {
+                ToolCall::workspace_read("deterministic-call-1", path)
+            }
+        };
+        Ok(ModelOutput::ToolCalls(vec![call]))
     }
 }
 
@@ -130,21 +179,38 @@ impl OpenAiCompatibleProvider {
         Ok(json!({
             "model": self.model,
             "messages": messages,
-            "tools": [{
-                "type": "function",
-                "function": {
-                    "name": "workspace.list",
-                    "description": "List direct entries beneath an allowed workspace directory.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "path": { "type": "string" }
-                        },
-                        "required": ["path"],
-                        "additionalProperties": false
+            "tools": [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "workspace.list",
+                        "description": "List direct entries beneath an allowed workspace directory.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "path": { "type": "string" }
+                            },
+                            "required": ["path"],
+                            "additionalProperties": false
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "workspace.read",
+                        "description": "Read one bounded UTF-8 text file beneath the allowed workspace.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "path": { "type": "string" }
+                            },
+                            "required": ["path"],
+                            "additionalProperties": false
+                        }
                     }
                 }
-            }],
+            ],
             "tool_choice": "auto"
         }))
     }
@@ -235,6 +301,12 @@ pub fn parse_openai_chat_completion(value: Value) -> Result<ModelOutput, ModelEr
                         )?;
                         canonical.push(ToolCall::workspace_list(id, path));
                     }
+                    "workspace.read" => {
+                        let path = arguments.get("path").and_then(Value::as_str).ok_or(
+                            ModelError::InvalidResponse("workspace.read requires string path"),
+                        )?;
+                        canonical.push(ToolCall::workspace_read(id, path));
+                    }
                     other => return Err(ModelError::UnsupportedTool(other.to_owned())),
                 }
             }
@@ -281,7 +353,7 @@ mod tests {
 
     #[tokio::test]
     async fn deterministic_provider_calls_workspace_then_finishes() {
-        let provider = DeterministicProvider;
+        let provider = DeterministicProvider::default();
         let first = provider
             .next_turn(ModelRequest::user("List the workspace"))
             .await
@@ -311,6 +383,83 @@ mod tests {
             second,
             ModelOutput::FinalText("Workspace entries: alpha.txt".into())
         );
+    }
+
+    #[tokio::test]
+    async fn deterministic_read_scenario_calls_read_then_finishes() {
+        let provider = DeterministicProvider::workspace_read("alpha.txt");
+        let first = provider
+            .next_turn(ModelRequest::user("Read alpha.txt"))
+            .await
+            .unwrap();
+        let calls = match first {
+            ModelOutput::ToolCalls(calls) => calls,
+            other => panic!("expected tool calls, got {other:?}"),
+        };
+        assert_eq!(calls[0].capability_id, "workspace.read");
+        assert_eq!(calls[0].arguments, json!({"path": "alpha.txt"}));
+
+        let second = provider
+            .next_turn(ModelRequest::with_tool_result(
+                "Read alpha.txt",
+                ToolResult {
+                    call_id: calls[0].id.clone(),
+                    capability_id: "workspace.read".into(),
+                    output: json!({
+                        "path": "alpha.txt",
+                        "content": "alpha",
+                        "bytes": 5
+                    }),
+                },
+            ))
+            .await
+            .unwrap();
+        assert_eq!(
+            second,
+            ModelOutput::FinalText("Contents of alpha.txt:\nalpha".into())
+        );
+    }
+
+    #[test]
+    fn openai_request_declares_list_and_read_tools() {
+        let provider = OpenAiCompatibleProvider::new("http://localhost", "", "test");
+        let body = provider
+            .request_body(&ModelRequest::user("Read alpha.txt"))
+            .unwrap();
+        let names = body["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|tool| tool["function"]["name"].as_str().unwrap())
+            .collect::<Vec<_>>();
+
+        assert_eq!(names, vec!["workspace.list", "workspace.read"]);
+    }
+
+    #[test]
+    fn openai_codec_maps_workspace_read_to_canonical_form() {
+        let fixture = json!({
+            "choices": [{
+                "message": {
+                    "content": null,
+                    "tool_calls": [{
+                        "id": "call_read",
+                        "type": "function",
+                        "function": {
+                            "name": "workspace.read",
+                            "arguments": "{\"path\":\"alpha.txt\"}"
+                        }
+                    }]
+                }
+            }]
+        });
+
+        let output = parse_openai_chat_completion(fixture).unwrap();
+        let ModelOutput::ToolCalls(calls) = output else {
+            panic!("expected tool call")
+        };
+        assert_eq!(calls[0].capability_id, "workspace.read");
+        assert_eq!(calls[0].arguments, json!({"path": "alpha.txt"}));
     }
 
     #[test]

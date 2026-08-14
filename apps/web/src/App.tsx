@@ -64,8 +64,9 @@ export function App() {
             <p className="eyebrow">Mission control</p>
             <h1>What should HermesClaw do?</h1>
             <p>
-              Start with a request. Actions remain constrained by the visible autonomy profile and
-              every capability execution leaves evidence.
+              Start with a request to list workspace entries or read an authorized UTF-8 text file.
+              Actions remain constrained by the visible autonomy profile and every capability execution
+              leaves evidence.
             </p>
           </div>
 
@@ -86,7 +87,7 @@ export function App() {
               rows={3}
               value={message}
               onChange={(event) => setMessage(event.target.value)}
-              placeholder="List this workspace"
+              placeholder="List this workspace or read alpha.txt"
             />
             <div className="composer-actions">
               <span>Observe · read-only capabilities</span>

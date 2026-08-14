@@ -167,6 +167,17 @@ impl ToolCall {
             Provenance::new("model", TrustLevel::ModelGenerated),
         )
     }
+
+    pub fn workspace_read(id: impl Into<String>, path: impl Into<String>) -> Self {
+        Self::new(
+            id,
+            "workspace.read",
+            serde_json::json!({ "path": path.into() }),
+            RiskClass::Low,
+            SideEffectClass::None,
+            Provenance::new("model", TrustLevel::ModelGenerated),
+        )
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -199,6 +210,19 @@ mod tests {
         let decoded: ToolCall = serde_json::from_str(&encoded).expect("deserialize tool call");
         assert_eq!(decoded, call);
         assert_eq!(decoded.capability_id, "workspace.list");
+    }
+
+    #[test]
+    fn workspace_read_constructor_is_low_risk_read_only() {
+        let call = ToolCall::workspace_read("call-read", "docs/notes.md");
+
+        assert_eq!(call.id, "call-read");
+        assert_eq!(call.capability_id, "workspace.read");
+        assert_eq!(call.arguments, serde_json::json!({"path": "docs/notes.md"}));
+        assert_eq!(call.risk, RiskClass::Low);
+        assert_eq!(call.side_effect, SideEffectClass::None);
+        assert_eq!(call.provenance.source, "model");
+        assert_eq!(call.provenance.trust, TrustLevel::ModelGenerated);
     }
 
     #[test]
