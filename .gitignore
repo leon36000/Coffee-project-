@@ -1,0 +1,25 @@
+/target/
+/node_modules/
+/dist/
+/apps/web/dist/
+/apps/desktop/src-tauri/target/
+.worktrees/
+.env
+.env.*
+!.env.example
+*.db
+*.db-shm
+*.db-wal
+.DS_Store
+
+/vendor/
+/.cargo/
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Derived project-memory RAG state
+/source/.raglite/
+/source/raglite/.venv/
+*.duckdb
+*.duckdb.wal

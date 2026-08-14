@@ -1,0 +1,11 @@
+{
+  "name": "hermesclaw",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["apps/web"],
+  "scripts": {
+    "test:web": "npm --prefix apps/web test",
+    "build:web": "npm --prefix apps/web run build",
+    "lint:web": "npm --prefix apps/web run lint"
+  }
+}

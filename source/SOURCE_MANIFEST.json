@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "project": "HermesClaw",
+  "generated_at": "2026-08-13",
+  "canonical_rule": "Markdown is truth; RAGLite/DuckDB is a disposable retrieval index.",
+  "documents": [
+    {
+      "path": "00_PROJECT_CONSTITUTION.md",
+      "title": "HermesClaw Project Constitution",
+      "authority": "constitution",
+      "status": "canonical",
+      "priority": 1000,
+      "sha256": "5faf57d6d44e6ebb5e8dbb6c0c5c2751b6af6e72aca356dc036de74d087f2a87",
+      "indexed": true
+    },
+    {
+      "path": "01_CANONICAL_FACTS.md",
+      "title": "HermesClaw Canonical Facts",
+      "authority": "canonical-facts",
+      "status": "canonical",
+      "priority": 950,
+      "sha256": "cad563a7b51536a36ff9ffebb46bf1c592f7657e8b943872b466b85dd03f2cb8",
+      "indexed": true
+    },
+    {
+      "path": "02_CANONICAL_DECISIONS.md",
+      "title": "HermesClaw Canonical Decisions",
+      "authority": "canonical-decisions",
+      "status": "canonical",
+      "priority": 940,
+      "sha256": "e177b4de988c34895094e6b4199ce22bb40c5f33fab3838234ce73e16736dd51",
+      "indexed": true
+    },
+    {
+      "path": "03_CURRENT_STATE.md",
+      "title": "HermesClaw Current State",
+      "authority": "current-state",
+      "status": "current",
+      "priority": 930,
+      "sha256": "889843c2c4f5a26b3791a51d09334ecaf52937d21d0f3f6ef89c8470fb0a2074",
+      "indexed": true
+    },
+    {
+      "path": "11_HANDOFF.md",
+      "title": "HermesClaw Handoff",
+      "authority": "handoff",
+      "status": "current",
+      "priority": 920,
+      "sha256": "3cd03db9c64e859c0a55fc417a8f29caf3d033bb67d7211ccdaa93e0ade73d57",
+      "indexed": true
+    },
+    {
+      "path": "14_REPOSITORY_RULES.md",
+      "title": "HermesClaw Repository Rules",
+      "authority": "repository-safety",
+      "status": "canonical",
+      "priority": 910,
+      "sha256": "5910c4de08b9893d9f89f3085beed8dbc88867762dadb2122399b430c76de8bb",
+      "indexed": true
+    },
+    {
+      "path": "10_MEMORY_AND_RAG_POLICY.md",
+      "title": "HermesClaw Memory and RAG Policy",
+      "authority": "memory-policy",
+      "status": "canonical",
+      "priority": 900,
+      "sha256": "920e7643959169453c84ccd9fce993141ba87519cfa2f2830623aec78b04425b",
+      "indexed": true
+    },
+    {
+      "path": "04_ARCHITECTURE_SUMMARY.md",
+      "title": "HermesClaw Architecture Summary",
+      "authority": "architecture",
+      "status": "canonical",
+      "priority": 880,
+      "sha256": "38a4d7ece61dd87e8685d469556db4b8f0e847f43573d27fee4fa0fa1c53b183",
+      "indexed": true
+    },
+    {
+      "path": "05_ENGINEERING_WORKFLOW.md",
+      "title": "HermesClaw Engineering Workflow",
+      "authority": "workflow",
+      "status": "canonical",
+      "priority": 870,
+      "sha256": "06f90552a007f471a18f293367e0f218152655f5ffb85568cae9efe471f0f5c5",
+      "indexed": true
+    },
+    {
+      "path": "06_TESTING_AND_PROOF.md",
+      "title": "HermesClaw Testing and Proof Policy",
+      "authority": "quality",
+      "status": "canonical",
+      "priority": 860,
+      "sha256": "4f4ed767b4cefd00fda2acd4ce8968d214e4f27c5f8c9640a9a242443137bd0b",
+      "indexed": true
+    },
+    {
+      "path": "07_SECURITY_BOUNDARIES.md",
+      "title": "HermesClaw Security Boundaries",
+      "authority": "security",
+      "status": "canonical",
+      "priority": 860,
+      "sha256": "f2039ab66ebb9cfff7f8f26d88565982c0bed060c6f38cbb582aaaf24977fc9a",
+      "indexed": true
+    },
+    {
+      "path": "13_AGENT_STARTUP_CHECKLIST.md",
+      "title": "HermesClaw Agent Startup Checklist",
+      "authority": "checklist",
+      "status": "canonical",
+      "priority": 850,
+      "sha256": "a9023dac890737838a7be7404dbd86e487cb03c7dbb3994e2030eb13e9bc2a80",
+      "indexed": true
+    },
+    {
+      "path": "08_UPSTREAM_BASELINES.md",
+      "title": "HermesClaw Upstream Baselines",
+      "authority": "upstream-baselines",
+      "status": "reference",
+      "priority": 810,
+      "sha256": "5d6b53ff73804450af1c8320ede8db727ff24b3bb8c0d9878a600d1c381b4369",
+      "indexed": true
+    },
+    {
+      "path": "09_ROADMAP.md",
+      "title": "HermesClaw Roadmap",
+      "authority": "roadmap",
+      "status": "current",
+      "priority": 780,
+      "sha256": "bd823bd671aee4cd9c45a1474ba90fc96b78c7060703d130b7d551b9132edc5e",
+      "indexed": true
+    },
+    {
+      "path": "12_GLOSSARY.md",
+      "title": "HermesClaw Glossary",
+      "authority": "glossary",
+      "status": "reference",
+      "priority": 600,
+      "sha256": "580c5984c2b656fa111d0083b2f982178c2d604d74ba4d029dbbe7836a15bcbf",
+      "indexed": true
+    },
+    {
+      "path": "15_RAG_QUERY_GUIDE.md",
+      "title": "HermesClaw RAG Query Guide",
+      "authority": "rag-guide",
+      "status": "reference",
+      "priority": 550,
+      "sha256": "157e6fbb83daaed48672cec8cc6c5597c7f83083591efc9139e65905d356c1d4",
+      "indexed": true
+    },
+    {
+      "path": "90_ARCHITECTURE_BASELINE_FULL.md",
+      "title": "Full HermesClaw Architecture Baseline",
+      "authority": "architecture-full",
+      "status": "reference",
+      "priority": 500,
+      "sha256": "ef467ea837ccac9c1ae16d556bc0595657d1a53a8cb2c8d60d96dca70e844510",
+      "indexed": true
+    },
+    {
+      "path": "91_VERTICAL_PROOF_PLAN_HISTORICAL.md",
+      "title": "Historical Vertical Proof Plan",
+      "authority": "historical-plan",
+      "status": "historical",
+      "priority": 300,
+      "sha256": "e23cb619cb7c7874372c32a563017988ccd2a4bb161c0b805ef688732e08d1d0",
+      "indexed": true
+    },
+    {
+      "path": "README_SOURCE.md",
+      "title": "HermesClaw Source Pack Readme",
+      "authority": "readme",
+      "status": "reference",
+      "priority": 200,
+      "sha256": "99a1fd0e3417e8481daecb0e1c792bafa33595457b958ab1ea8b2ea7f0753273",
+      "indexed": false
+    }
+  ]
+}

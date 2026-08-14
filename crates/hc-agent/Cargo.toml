@@ -1,0 +1,23 @@
+[package]
+name = "hc-agent"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+chrono.workspace = true
+hc-domain = { path = "../hc-domain" }
+hc-mission = { path = "../hc-mission" }
+hc-models = { path = "../hc-models" }
+hc-policy = { path = "../hc-policy" }
+hc-state = { path = "../hc-state" }
+hc-tools = { path = "../hc-tools" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio.workspace = true

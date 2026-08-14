@@ -1,0 +1,22 @@
+[package]
+name = "hermesclaw-desktop"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "hermesclaw_desktop"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build.workspace = true
+
+[dependencies]
+hc-agent = { path = "../../../crates/hc-agent" }
+hc-domain = { path = "../../../crates/hc-domain" }
+hc-models = { path = "../../../crates/hc-models" }
+hc-state = { path = "../../../crates/hc-state" }
+hc-tools = { path = "../../../crates/hc-tools" }
+tauri.workspace = true

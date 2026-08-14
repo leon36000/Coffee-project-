@@ -1,0 +1,13 @@
+[package]
+name = "hc-policy"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+hc-domain = { path = "../hc-domain" }
+
+[dev-dependencies]
+serde_json.workspace = true

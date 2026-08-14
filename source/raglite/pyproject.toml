@@ -1,0 +1,20 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hermesclaw-project-rag"
+version = "0.1.0"
+description = "Disposable RAGLite index over HermesClaw canonical project source"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+  "raglite==1.1.1",
+]
+
+[project.optional-dependencies]
+local = [
+  "raglite[llama-cpp-python]==1.1.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["hc_rag"]
