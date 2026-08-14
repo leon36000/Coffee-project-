@@ -2,20 +2,22 @@
 
 HermesClaw is a Rust-first agent runtime and mission cockpit being built from the useful behavioral ideas of Hermes Agent and OpenClaw without keeping either product as the final runtime boundary.
 
-## Vertical proof v0.1
+## Vertical proof v0.2
 
-The first executable slice proves one complete, bounded path:
+The current executable proof covers two read-only workspace capabilities through one agent/policy/evidence path:
 
 1. a user submits a mission;
 2. the Rust `TurnCoordinator` calls a model provider;
-3. the model emits a canonical `workspace.list` capability request;
+3. the model emits a canonical `workspace.list` or `workspace.read` request;
 4. the Policy Kernel evaluates the request under the visible `Observe` autonomy profile;
-5. the capability broker executes only inside the configured workspace boundary;
+5. the capability broker executes only inside the canonical workspace boundary;
 6. ordered policy and execution evidence is stored in SQLite;
 7. the mission transitions through verification to `completed`;
-8. the result, mission state, trace ID and evidence are rendered in the React cockpit.
+8. the result, mission state, trace ID, and sanitized evidence are rendered in the React cockpit.
 
-The deterministic provider makes this slice reproducible. An OpenAI-compatible provider adapter is also present but is not enabled by default in the proof executable.
+`workspace.read` accepts regular UTF-8 text files up to 65,536 bytes, rejects NUL-containing content and workspace escapes, returns the authorized text to the active model turn, and persists only path, byte count, and SHA-256 as evidence.
+
+The deterministic provider keeps the proof reproducible. An OpenAI-compatible provider adapter exposes both tool schemas but is not enabled by default in the proof executable.
 
 ## Repository layout
 
@@ -29,7 +31,7 @@ crates/hc-mission/        mission state machine
 crates/hc-models/         deterministic + OpenAI-compatible model adapters
 crates/hc-policy/         policy decisions
 crates/hc-state/          SQLite evidence store
-crates/hc-tools/          capability broker + safe workspace.list
+crates/hc-tools/          capability broker + workspace.list/workspace.read
 ```
 
 ## Run the proof API
@@ -42,7 +44,7 @@ cargo run -p hc-api
 
 Environment variables:
 
-- `HERMESCLAW_WORKSPACE` — workspace exposed to `workspace.list`; defaults to the current directory.
+- `HERMESCLAW_WORKSPACE` — workspace exposed to the read-only file capabilities; defaults to the current directory.
 - `HERMESCLAW_DB` — SQLite evidence database path; defaults to `hermesclaw.db`.
 - `HERMESCLAW_BIND` — HTTP bind address; defaults to `127.0.0.1:7777`.
 
@@ -74,14 +76,17 @@ Linux desktop builds require the normal Tauri GTK/WebKit development packages.
 
 ```bash
 cargo fmt --all --check
-cargo test --workspace --exclude hermesclaw-desktop
-cargo clippy --workspace --exclude hermesclaw-desktop --all-targets -- -D warnings
+cargo test --workspace --exclude hermesclaw-desktop --locked
+cargo clippy --workspace --exclude hermesclaw-desktop --all-targets --locked -- -D warnings
 npm --prefix apps/web ci
 npm run test:web
+npm run lint:web
 npm run build:web
+cargo check -p hermesclaw-desktop --locked
+python source/raglite/validate_source.py
 ```
 
-The desktop crate is additionally compile-checked in an environment with Tauri system libraries.
+The security cases for `workspace.read` are automated Rust tests, not manual claims.
 
 ## Canonical project memory
 

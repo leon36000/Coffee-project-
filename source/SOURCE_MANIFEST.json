@@ -19,7 +19,7 @@
       "authority": "canonical-facts",
       "status": "canonical",
       "priority": 950,
-      "sha256": "fb4c12cf71df1d67df7d0a8bfe98e09ddf0742c3d19bce6a24ca56cb08923185",
+      "sha256": "3f2269441299af49e763ef0baf4c5c32aba2fc60d30f01188ae9564b1d05869c",
       "indexed": true
     },
     {
@@ -37,7 +37,7 @@
       "authority": "current-state",
       "status": "current",
       "priority": 930,
-      "sha256": "75dc637775b0d240be64536f07825144f9d77b3ad9b80fade4595f1a8108e0af",
+      "sha256": "7f8c0ba817bba6a8ed68818477b2c5393d10a5f16348ffcf646c1af9ad89185f",
       "indexed": true
     },
     {
@@ -46,7 +46,7 @@
       "authority": "handoff",
       "status": "current",
       "priority": 920,
-      "sha256": "28b9258da87a60fec90543fe1b6e19ed6c90140474f7f233ca3ed0e6866f7a43",
+      "sha256": "6fcfda9fb5ece541d2af7f6a193b8c3188c840e2c3664245b1f97b4597adaebb",
       "indexed": true
     },
     {
@@ -127,7 +127,7 @@
       "authority": "roadmap",
       "status": "current",
       "priority": 780,
-      "sha256": "ce2dc1ea52a9535d2bb79cf45a7bdf226fcbafdf7b32405b744f5aee5060cb55",
+      "sha256": "d022dd909b79f8231a3ef9ffbe7861715c5e773eb21f2b19f49a1464a85d3dc8",
       "indexed": true
     },
     {

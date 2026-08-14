@@ -16,8 +16,17 @@
 - Default branch: `main`.
 - The exact recovered 85-file source baseline was established at commit `c3fd965d438a5a471c969f3fa1b447e3b6e34b31` from local source commit `d79d2ebb3c7a0092f833d5883f1522954566e031`.
 - The canonical Web CI lockfile fix was merged through PR #6 at commit `2dff93bd73eda777a6e305ee5a658d146e5aa6c6`.
-- GitHub Actions run `31837639423` verified the current `main` commit with green Rust, Web, and Tauri compile jobs.
+- The bounded `workspace.read` capability was merged through PR #8 at commit `ec3cfff0e938d4bc5e17d36d30a6d84f52cbdd19`.
+- GitHub Actions run `31847082077` verified the merged `workspace.read` commit with green Rust, Web, and Tauri compile jobs.
 - `leon36000/GitSpace` is unrelated prior work and must not be used for HermesClaw.
+
+## Verified read-only capability facts
+
+- `workspace.list` and `workspace.read` share one canonical workspace boundary.
+- `workspace.read` accepts regular UTF-8 text files up to exactly `65_536` bytes.
+- The model-visible read result contains path, content, and byte count.
+- Persisted read evidence contains only path, byte count, and SHA-256; file content is not duplicated into SQLite evidence.
+- Binary, partial, streaming, write, patch, delete, and process capabilities are not implied by the read capability.
 
 ## Technology direction
 

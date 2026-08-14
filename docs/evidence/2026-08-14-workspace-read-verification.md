@@ -3,10 +3,9 @@
 ## Verification target
 
 - repository: `leon36000/Coffee-project-`;
-- base: `main` at `be10fe31fc2f61d75bec97293c8034927dcbee98`;
-- branch: `agent/workspace-read`;
-- implementation commit: `67026ab4eff7d7c895d746dcf0a641f85a73a44b`;
-- clean post-transfer checkpoint: `2d336a43c0d0e4c8eeb796fa8d3f3f9637e56623`;
+- merged pull request: #8;
+- merge commit: `ec3cfff0e938d4bc5e17d36d30a6d84f52cbdd19`;
+- feature implementation commit before squash: `67026ab4eff7d7c895d746dcf0a641f85a73a44b`;
 - approved specification: `docs/superpowers/specs/2026-08-14-workspace-read-design.md`.
 
 The target is a bounded read-only text-file capability, not a general filesystem framework.
@@ -92,20 +91,11 @@ Rust test distribution:
 
 ## GitHub Actions evidence
 
-Transfer provenance:
+- branch run `31846047390`: Rust job `94912572591`, Web job `94912572486`, Tauri job `94912572553` — success;
+- PR run `31846845864`: Rust job `94914955207`, Web job `94914955743`, Tauri job `94914955313` — success;
+- post-merge `main` run `31847082077`: Rust job `94915614768`, Web job `94915614867`, Tauri job `94915614757` — success.
 
-- one-shot patch run `31845995476`, job `94912417197`;
-- reconstructed patch SHA-256: `dbe301a1065cbd82f7c1b19ef9e8a372a20e19f1b572c9eab5f91271d55a878a`;
-- Base64 decode, SHA validation, `git apply --check`, application, commit, and push all succeeded.
-
-Independent canonical CI:
-
-- run `31846047390`;
-- Rust job `94912572591` — success;
-- Web job `94912572486` — success;
-- Tauri desktop compile job `94912572553` — success.
-
-The temporary transfer files and one-shot workflow were removed in cleanup commit `2d336a43c0d0e4c8eeb796fa8d3f3f9637e56623`; application code was unchanged by that cleanup.
+Transfer provenance was separately verified by one-shot run `31845995476`, job `94912417197`, using patch SHA-256 `dbe301a1065cbd82f7c1b19ef9e8a372a20e19f1b572c9eab5f91271d55a878a`. All transfer files and the one-shot workflow were removed before PR review.
 
 ## Security and privacy result
 
