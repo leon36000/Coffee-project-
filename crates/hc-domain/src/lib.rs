@@ -207,10 +207,7 @@ mod tests {
 
         assert_eq!(call.id, "call-read");
         assert_eq!(call.capability_id, "workspace.read");
-        assert_eq!(
-            call.arguments,
-            serde_json::json!({"path": "docs/notes.md"})
-        );
+        assert_eq!(call.arguments, serde_json::json!({"path": "docs/notes.md"}));
         assert_eq!(call.risk, RiskClass::Low);
         assert_eq!(call.side_effect, SideEffectClass::None);
         assert_eq!(call.provenance.source, "model");
