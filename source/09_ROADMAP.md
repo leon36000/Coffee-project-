@@ -10,7 +10,7 @@
 - Official repository: `leon36000/Coffee-project-`.
 - Exact recovered baseline established at `c3fd965d438a5a471c969f3fa1b447e3b6e34b31`.
 - Canonical baseline documentation merged at `be10fe31fc2f61d75bec97293c8034927dcbee98`.
-- GitHub Actions verified Rust, Web, and Tauri compile jobs on `main`.
+- GitHub Actions verifies Rust, Web, and Tauri compile jobs on `main`.
 
 ## Phase 1 — Architectural spine
 
@@ -29,9 +29,9 @@ This proves the spine only. Each domain still requires capability-by-capability 
 
 ## Phase 3 checkpoint — bounded file reads
 
-**Status: implementation and branch CI verified; merge pending.**
+**Status: verified complete for the approved `workspace.read` slice.**
 
-`workspace.read` on `agent/workspace-read` adds:
+PR #8 merged `workspace.read` at `ec3cfff0e938d4bc5e17d36d30a6d84f52cbdd19` with:
 
 - shared canonical workspace-boundary enforcement with `workspace.list`;
 - a `65_536` byte limit;
@@ -41,9 +41,11 @@ This proves the spine only. Each domain still requires capability-by-capability 
 - deterministic and OpenAI-compatible tool codecs;
 - agent, SQLite evidence, Axum, React, and Tauri integration.
 
-Local verification recorded 30 Rust tests and 2 React tests with zero failures. GitHub Actions run `31846047390` passed Rust, Web, and Tauri compile gates. This checkpoint is not canonical until its PR is merged and `main` passes again.
+Local verification recorded 30 Rust tests and 2 React tests with zero failures. Branch run `31846047390`, PR run `31846845864`, and post-merge run `31847082077` passed Rust, Web, and Tauri compile gates.
 
-## Next bounded checkpoint after merge
+This completes only the bounded read checkpoint, not the whole file/process wave.
+
+## Next bounded checkpoint
 
 Design an Assist-profile `workspace.write` capability as a separate slice. Its design must cover approval semantics, atomic replacement, path confinement, bounded input, overwrite policy, rollback/error evidence, and secret-safe audit records before implementation starts. File mutation and process execution must not be introduced implicitly through the read capability.
 
@@ -51,7 +53,7 @@ Design an Assist-profile `workspace.write` capability as a separate slice. Its d
 
 1. Core domain/events/state/policy — initial proof present; continue hardening as required.
 2. Model Fabric and minimal Agent Engine — initial proof present; continue provider/error/cancellation work incrementally.
-3. File/process capability engine — **active**; `workspace.list` is canonical and `workspace.read` is verified pending merge. Mutation and process execution remain deferred.
+3. File/process capability engine — **active**; `workspace.list` and bounded `workspace.read` are canonical. Mutation and process execution remain deferred.
 4. Mission durability, cancellation, recovery.
 5. Hermes memory/context/compression behaviors.
 6. Hermes skills/delegation/self-improvement controls.

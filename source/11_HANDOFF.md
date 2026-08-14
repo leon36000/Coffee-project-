@@ -14,17 +14,16 @@
 
 ## Repository state
 
-- canonical `main` before feature merge: `be10fe31fc2f61d75bec97293c8034927dcbee98`;
-- active branch: `agent/workspace-read`;
-- feature implementation commit: `67026ab4eff7d7c895d746dcf0a641f85a73a44b`;
-- clean branch checkpoint after transfer cleanup: `2d336a43c0d0e4c8eeb796fa8d3f3f9637e56623`;
+- canonical `workspace.read` merge commit: `ec3cfff0e938d4bc5e17d36d30a6d84f52cbdd19`;
+- merged pull request: #8;
+- feature implementation commit before squash: `67026ab4eff7d7c895d746dcf0a641f85a73a44b`;
 - design: `docs/superpowers/specs/2026-08-14-workspace-read-design.md`;
 - plan: `docs/superpowers/plans/2026-08-14-workspace-read-implementation.md`;
 - evidence: `docs/evidence/2026-08-14-workspace-read-verification.md`.
 
-## Implemented behavior
+## Canonical capability
 
-The branch adds a constrained `workspace.read` capability:
+HermesClaw now includes constrained `workspace.read`:
 
 - shared canonical boundary with `workspace.list`;
 - maximum `65_536` bytes;
@@ -39,7 +38,7 @@ The branch adds a constrained `workspace.read` capability:
 
 TDD:
 
-- GitHub Actions run `31844182703` failed because `ToolCall::workspace_read` did not yet exist, proving the domain test was red for the intended reason.
+- run `31844182703` failed because `ToolCall::workspace_read` did not yet exist, proving the domain test was red for the intended reason.
 
 Local final verification:
 
@@ -55,8 +54,9 @@ Local final verification:
 
 GitHub Actions:
 
-- hash-locked patch application run `31845995476` — success;
-- independent branch CI run `31846047390` — Rust, Web, and Tauri compile jobs all succeeded.
+- branch run `31846047390` — Rust, Web, and Tauri compile jobs succeeded;
+- PR run `31846845864` — Rust, Web, and Tauri compile jobs succeeded;
+- post-merge `main` run `31847082077` — Rust, Web, and Tauri compile jobs succeeded.
 
 ## Independent review
 
@@ -71,8 +71,8 @@ Residual limitation: the current filesystem boundary is not an OS-specific race-
 
 ## Blockers
 
-No technical blocker is known. The remaining release path is procedural: open PR, obtain green PR CI, merge, obtain green post-merge `main` CI, then update canonical state with the final merge commit and run identifiers.
+None for the merged `workspace.read` checkpoint.
 
 ## Exact next action
 
-Open the `workspace.read` PR against `main`, complete review and PR CI, merge only while all required checks are green, run post-merge CI, then create the next design checkpoint for Assist-profile `workspace.write` without combining it with process execution.
+Brainstorm and approve a separate Assist-profile `workspace.write` design covering approval, atomic replacement, bounded input, overwrite semantics, rollback/error evidence, and secret-safe audit records. Do not combine process execution into that slice.
