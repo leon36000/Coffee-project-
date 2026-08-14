@@ -10,57 +10,67 @@ The official repository is `leon36000/Coffee-project-`, default branch `main`.
 
 Verified live on 2026-08-14:
 
-- current `main` commit: `2dff93bd73eda777a6e305ee5a658d146e5aa6c6`;
-- recovered source baseline commit: `c3fd965d438a5a471c969f3fa1b447e3b6e34b31`;
-- exact baseline tree: 85 tracked files;
-- no bootstrap payloads, `target/`, `node_modules/`, `dist/`, or migration workflows are present in the canonical baseline tree;
-- PR #6 corrected the Web dependency install command without changing application behavior;
+- current `main` commit before the `workspace.read` merge: `be10fe31fc2f61d75bec97293c8034927dcbee98`;
+- feature branch: `agent/workspace-read`;
+- bounded capability implementation commit: `67026ab4eff7d7c895d746dcf0a641f85a73a44b`;
+- clean post-transfer checkpoint: `2d336a43c0d0e4c8eeb796fa8d3f3f9637e56623`;
+- the feature branch contains no bootstrap payload, generated transfer workflow, `target/`, `node_modules/`, or `dist/` artifact;
 - `leon36000/GitSpace` was not used for HermesClaw work.
 
 ## Current executable evidence
 
-GitHub Actions run `31837639423` against `main` commit `2dff93bd73eda777a6e305ee5a658d146e5aa6c6` completed successfully:
-
-- **Rust proof gates:** formatting, locked workspace tests excluding the desktop crate, and Clippy with `-D warnings` — pass;
-- **Web proof gates:** locked dependency install, cockpit tests, and production build — pass;
-- **Tauri desktop compile gate:** Linux system dependencies plus `cargo check -p hermesclaw-desktop --locked` — pass.
-
-Additional verification rerun locally on the recovered exact source tree with Rust 1.97.1 and checksum-verified vendored dependencies:
+Local verification on the implemented source tree with Rust `1.97.1`, locked dependencies, and the checksum-verified Tauri Linux package set:
 
 - `cargo fmt --all --check` — pass;
-- `cargo test --workspace --exclude hermesclaw-desktop --locked --offline` — 14 passed, 0 failed;
+- `cargo test --workspace --exclude hermesclaw-desktop --locked --offline` — **30 passed, 0 failed**;
 - `cargo clippy --workspace --exclude hermesclaw-desktop --all-targets --locked --offline -- -D warnings` — pass;
-- `npm test` in `apps/web` — 1 passed, 0 failed;
-- `npm run lint` in `apps/web` — pass;
-- `npm run build` in `apps/web` — pass.
+- `npm --prefix apps/web test` — **2 passed, 0 failed**;
+- `npm --prefix apps/web run lint` — pass;
+- `npm --prefix apps/web run build` — pass;
+- `cargo check -p hermesclaw-desktop --locked --offline` — pass;
+- `python source/raglite/validate_source.py` — **19 documents validated**;
+- `git diff --check` — pass.
 
-## Implemented architectural proof
+GitHub Actions evidence:
 
-The official baseline currently proves:
+- TDD red run `31844182703` failed for the intended missing `ToolCall::workspace_read` constructor;
+- hash-locked patch application run `31845995476` succeeded after `git apply --check`;
+- independent branch CI run `31846047390` succeeded for Rust formatting/tests/Clippy, Web install/tests/build, and the Tauri desktop compile gate.
 
-- typed domain, mission, policy, model, capability, evidence, and API boundaries;
-- a bounded Rust agent turn loop;
-- `workspace.list` as a low-risk read-only capability;
-- canonical path and symlink escape rejection for that capability;
-- Observe-profile policy evaluation before execution;
-- ordered evidence persistence in SQLite;
-- Axum API, React mission cockpit, and Tauri desktop shell integration;
-- deterministic and OpenAI-compatible model-provider seams.
+## Implemented `workspace.read` slice
 
-This is an architectural vertical proof, not a claim that HermesClaw feature migration is complete.
+The feature branch currently proves:
+
+- canonical `ToolCall::workspace_read` domain construction;
+- one shared `WorkspaceBoundary` used by `workspace.list` and `workspace.read`;
+- regular-file-only UTF-8 reads capped at exactly `65_536` bytes;
+- rejection of parent traversal, absolute escape, external symlink escape, directories, `65_537`-byte files, invalid UTF-8, and NUL-containing content;
+- acceptance of an internal symlink with the canonical target path returned;
+- model-visible output `{path, content, bytes}`;
+- persisted evidence `{path, bytes, sha256}` with no file content;
+- deterministic and OpenAI-compatible model codecs;
+- Observe policy, agent, SQLite evidence, Axum, React, and Tauri integration;
+- preservation of existing `workspace.list` behavior.
+
+## Review status and limitations
+
+Independent specification/engineering review found no material requirement violation.
+
+Tooling status:
+
+- Fallow CLI is not installed in the active verification environment, so no Fallow graph verdict is claimed;
+- no SonarQube project configuration or scanner is present, so no SonarQube result is claimed.
+
+Known bounded limitation:
+
+- canonicalization, metadata inspection, and file open are not protected by an OS-specific race-free broker. A hostile local actor could replace or grow a filesystem object between checks. The post-read byte limit prevents oversized content from being returned, but the implementation does not claim adversarial TOCTOU hardening.
+
+The slice does not support binary files, partial reads, streaming, writes, patches, deletion, or process execution.
 
 ## Current blockers
 
-No Phase 0 repository or CI blocker remains.
+No implementation or CI blocker is known. Pull-request review, PR CI, merge, and post-merge `main` CI remain before the capability becomes canonical.
 
-## Next safe capability checkpoint
+## Next safe checkpoint
 
-The next roadmap-aligned slice is a bounded **`workspace.read`** capability:
-
-1. specify its typed contract and size/encoding limits;
-2. centralize workspace-boundary resolution shared with `workspace.list`;
-3. write failing traversal, symlink, directory, binary, and oversize tests;
-4. implement the smallest read-only capability;
-5. connect deterministic/OpenAI tool codecs, agent evidence, API, and UI behavior;
-6. run Rust, Web, security, integration, and Tauri compile gates;
-7. update this file and `11_HANDOFF.md` with exact evidence.
+After `workspace.read` is merged and reverified on `main`, design — but do not combine into this change — an Assist-profile `workspace.write` capability with explicit policy/approval behavior, atomic replacement, bounded input, and sanitized evidence. Process execution remains deferred.
