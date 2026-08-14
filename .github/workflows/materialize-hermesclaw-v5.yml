@@ -7,6 +7,7 @@ on:
       - agent/materialize-baseline-v5
       - agent/fix-materialization-index
       - agent/fix-workflow-permission-materialization
+      - agent/diagnose-materialization-stage
     paths:
       - bootstrap/v5/**
       - .github/workflows/materialize-hermesclaw-v5.yml
@@ -105,6 +106,76 @@ jobs:
       - name: Verify Tauri desktop compile gate
         working-directory: /tmp/hermesclaw-root
         run: cargo check -p hermesclaw-desktop --locked
+
+      - name: Diagnose publication tree construction
+        if: github.event_name == 'push' && github.ref == 'refs/heads/agent/diagnose-materialization-stage'
+        shell: bash
+        env:
+          GIT_INDEX_FILE: /tmp/hermesclaw-materialize.index
+        run: |
+          report=/tmp/materialization-diagnostics.txt
+          exec > >(tee "$report") 2>&1
+          set -euxo pipefail
+
+          expected_local_commit="$(cat bootstrap/v5/EXPECTED_LOCAL_COMMIT)"
+          echo "github_sha=$GITHUB_SHA"
+          echo "expected_local_commit=$expected_local_commit"
+          git --version
+          git config --get remote.origin.url
+          git count-objects -v
+
+          git config user.name "HermesClaw Baseline Bot"
+          git config user.email "actions@users.noreply.github.com"
+
+          rm -f "$GIT_INDEX_FILE"
+          git read-tree "$GITHUB_SHA^{tree}"
+          echo "index_entries_before=$(git ls-files | wc -l)"
+
+          added=0
+          while IFS= read -r -d '' file; do
+            relative_path="${file#/tmp/hermesclaw-root/}"
+            if [[ "$relative_path" == ".github/workflows/ci.yml" ]]; then
+              echo "skip_workflow=$relative_path"
+              continue
+            fi
+            blob_sha="$(git hash-object -w -- "$file")"
+            git update-index --add --cacheinfo 100644 "$blob_sha" "$relative_path"
+            added=$((added + 1))
+          done < <(find /tmp/hermesclaw-root -type f -print0 | sort -z)
+          echo "source_entries_added=$added"
+          echo "index_entries_after=$(git ls-files | wc -l)"
+
+          published_tree="$(git write-tree)"
+          echo "published_tree=$published_tree"
+          git ls-tree -r --name-only "$published_tree" | tee /tmp/published-tree.txt
+          echo "published_tree_files=$(wc -l < /tmp/published-tree.txt)"
+
+          test "$(grep -c '^source/00_PROJECT_CONSTITUTION\.md$' /tmp/published-tree.txt)" -eq 1
+          test "$(grep -c '^crates/hc-agent/src/lib\.rs$' /tmp/published-tree.txt)" -eq 1
+          test "$(grep -c '^apps/web/src/App\.tsx$' /tmp/published-tree.txt)" -eq 1
+          test "$(grep -c '^bootstrap/v5/READY$' /tmp/published-tree.txt)" -eq 1
+          test "$(grep -c '^\.github/workflows/ci\.yml$' /tmp/published-tree.txt)" -eq 0
+
+          published_commit="$({
+            printf '%s\n\n' "chore: stage verified HermesClaw source ${expected_local_commit:0:12}"
+            printf 'Source baseline: %s\n' "$expected_local_commit"
+            printf 'The canonical CI workflow is installed separately by the GitHub integration.\n'
+          } | git commit-tree "$published_tree" -p "$GITHUB_SHA")"
+          echo "published_commit=$published_commit"
+          git cat-file -p "$published_commit"
+          git merge-base --is-ancestor "$GITHUB_SHA" "$published_commit"
+          echo "diagnostic_status=success"
+
+      - name: Upload publication diagnostics
+        if: always() && github.ref == 'refs/heads/agent/diagnose-materialization-stage'
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermesclaw-materialization-diagnostics
+          path: |
+            /tmp/materialization-diagnostics.txt
+            /tmp/published-tree.txt
+          if-no-files-found: warn
+          retention-days: 1
 
       - name: Stage verified non-workflow source on main
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('bootstrap/v5/READY') != ''
