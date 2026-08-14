@@ -1,0 +1,44 @@
+name: Apply workspace.read patch
+
+on:
+  push:
+    branches:
+      - agent/workspace-read
+    paths:
+      - bootstrap/workspace-read/READY
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-workspace-read-patch
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decode and verify patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat bootstrap/workspace-read/patch-*.b64 | base64 --decode > /tmp/workspace-read.patch
+          echo 'dbe301a1065cbd82f7c1b19ef9e8a372a20e19f1b572c9eab5f91271d55a878a  /tmp/workspace-read.patch' | sha256sum --check
+          git apply --check --index /tmp/workspace-read.patch
+
+      - name: Apply and publish patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'HermesClaw Engineering Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git apply --index /tmp/workspace-read.patch
+          git diff --cached --check
+          git commit -m 'feat: add bounded workspace read capability'
+          git push origin HEAD:agent/workspace-read
