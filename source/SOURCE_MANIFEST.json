@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "project": "HermesClaw",
-  "generated_at": "2026-08-13",
+  "generated_at": "2026-08-14",
   "canonical_rule": "Markdown is truth; RAGLite/DuckDB is a disposable retrieval index.",
   "documents": [
     {
@@ -19,7 +19,7 @@
       "authority": "canonical-facts",
       "status": "canonical",
       "priority": 950,
-      "sha256": "cad563a7b51536a36ff9ffebb46bf1c592f7657e8b943872b466b85dd03f2cb8",
+      "sha256": "fb4c12cf71df1d67df7d0a8bfe98e09ddf0742c3d19bce6a24ca56cb08923185",
       "indexed": true
     },
     {
@@ -37,7 +37,7 @@
       "authority": "current-state",
       "status": "current",
       "priority": 930,
-      "sha256": "889843c2c4f5a26b3791a51d09334ecaf52937d21d0f3f6ef89c8470fb0a2074",
+      "sha256": "c372aa67ba27a15a78012dbfca5cbc3c1647ed4092bc15bfcd857ed57883542d",
       "indexed": true
     },
     {
@@ -46,7 +46,7 @@
       "authority": "handoff",
       "status": "current",
       "priority": 920,
-      "sha256": "3cd03db9c64e859c0a55fc417a8f29caf3d033bb67d7211ccdaa93e0ade73d57",
+      "sha256": "3b19aab6a5571f1de42e2f619fb58eea33279dd0440f29922eba7509cbffe198",
       "indexed": true
     },
     {
@@ -127,7 +127,7 @@
       "authority": "roadmap",
       "status": "current",
       "priority": 780,
-      "sha256": "bd823bd671aee4cd9c45a1474ba90fc96b78c7060703d130b7d551b9132edc5e",
+      "sha256": "db006abf13d5f5af1ce716face49cd7efc1c2e4cd146a2db29f0f6365a41bb2a",
       "indexed": true
     },
     {
