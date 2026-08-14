@@ -94,7 +94,7 @@ impl TurnCoordinator {
                             }
                         }
 
-                        let result = self.registry.execute(&call).await?;
+                        let execution = self.registry.execute(&call).await?;
                         self.evidence.append(&EvidenceRecord {
                             trace_id,
                             mission_id: mission.id(),
@@ -102,10 +102,10 @@ impl TurnCoordinator {
                             capability_id: Some(call.capability_id.clone()),
                             policy_decision: Some(decision),
                             status: "succeeded".into(),
-                            payload: result.output.clone(),
+                            payload: execution.evidence_payload,
                             recorded_at: Utc::now(),
                         })?;
-                        messages.push(ModelMessage::ToolResult(result));
+                        messages.push(ModelMessage::ToolResult(execution.result));
                     }
                 }
                 ModelOutput::FinalText(response) => {
@@ -176,9 +176,42 @@ mod tests {
     use hc_domain::{AutonomyProfile, MissionState, PolicyDecision};
     use hc_models::DeterministicProvider;
     use hc_state::EvidenceStore;
-    use hc_tools::{CapabilityRegistry, WorkspaceListCapability};
+    use hc_tools::{CapabilityRegistry, WorkspaceListCapability, WorkspaceReadCapability};
     use std::fs;
     use tempfile::tempdir;
+
+    #[tokio::test]
+    async fn read_turn_returns_text_without_persisting_file_content() {
+        let workspace = tempdir().expect("workspace");
+        fs::write(workspace.path().join("alpha.txt"), "alpha secret text").unwrap();
+
+        let mut registry = CapabilityRegistry::new();
+        registry.register(WorkspaceReadCapability::new(workspace.path()).unwrap());
+        let coordinator = TurnCoordinator::new(
+            DeterministicProvider::workspace_read("alpha.txt"),
+            registry,
+            EvidenceStore::in_memory().unwrap(),
+        );
+
+        let outcome = coordinator
+            .run(ChatInput::new("Read alpha.txt", AutonomyProfile::Observe))
+            .await
+            .unwrap();
+
+        assert_eq!(outcome.mission_state, MissionState::Completed);
+        assert_eq!(
+            outcome.response,
+            "Contents of alpha.txt:\nalpha secret text"
+        );
+        assert_eq!(outcome.evidence.len(), 2);
+        let execution = &outcome.evidence[1];
+        assert_eq!(execution.capability_id.as_deref(), Some("workspace.read"));
+        assert_eq!(execution.payload["path"], "alpha.txt");
+        assert_eq!(execution.payload["bytes"], 17);
+        assert_eq!(execution.payload["sha256"].as_str().unwrap().len(), 64);
+        assert!(execution.payload.get("content").is_none());
+        assert!(!execution.payload.to_string().contains("alpha secret text"));
+    }
 
     #[tokio::test]
     async fn deterministic_turn_completes_with_policy_tool_and_evidence() {
@@ -188,7 +221,7 @@ mod tests {
         let mut registry = CapabilityRegistry::new();
         registry.register(WorkspaceListCapability::new(workspace.path()).unwrap());
         let coordinator = TurnCoordinator::new(
-            DeterministicProvider,
+            DeterministicProvider::default(),
             registry,
             EvidenceStore::in_memory().unwrap(),
         );

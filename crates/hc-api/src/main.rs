@@ -2,7 +2,7 @@ use hc_agent::TurnCoordinator;
 use hc_api::build_router;
 use hc_models::DeterministicProvider;
 use hc_state::EvidenceStore;
-use hc_tools::{CapabilityRegistry, WorkspaceListCapability};
+use hc_tools::{CapabilityRegistry, WorkspaceListCapability, WorkspaceReadCapability};
 use std::{env, error::Error, path::PathBuf};
 
 #[tokio::main]
@@ -16,9 +16,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let bind = env::var("HERMESCLAW_BIND").unwrap_or_else(|_| "127.0.0.1:7777".into());
 
     let mut registry = CapabilityRegistry::new();
-    registry.register(WorkspaceListCapability::new(workspace)?);
+    registry.register(WorkspaceListCapability::new(&workspace)?);
+    registry.register(WorkspaceReadCapability::new(&workspace)?);
     let coordinator = TurnCoordinator::new(
-        DeterministicProvider,
+        DeterministicProvider::default(),
         registry,
         EvidenceStore::open(database)?,
     );
