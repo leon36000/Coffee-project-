@@ -37,8 +37,7 @@ jobs:
         with:
           node-version: '22.16.0'
       - name: Install locked web dependencies
-        working-directory: apps/web
-        run: npm ci
+        run: npm --prefix apps/web ci
       - name: Test cockpit
         run: npm run test:web
       - name: Build cockpit
