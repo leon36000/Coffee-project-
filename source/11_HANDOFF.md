@@ -1,49 +1,51 @@
 # HermesClaw Handoff
 
-**Authority:** current handoff checkpoint  
-**Updated:** 2026-08-13
+**Authority:** current handoff checkpoint
+**Updated:** 2026-08-14
 
 ## Canonical direction
 
 - Official HermesClaw GitHub target: `leon36000/Coffee-project-`.
-- GitSpace is explicitly excluded and was not touched during this checkpoint.
+- GitSpace is explicitly excluded.
 - Backend destination: Rust.
 - UI: React + TypeScript.
 - Desktop shell: Tauri.
 - Markdown in `source/` is canonical memory; RAGLite/DuckDB is derived retrieval infrastructure.
 
-## Recovered implementation
+## Official repository state
 
-The local workspace `/mnt/data/HermesClaw` contains the vertical architectural proof. The canonical source pack and recovery provenance were added at local commit `e5479d3`; the verified checkpoint documentation was committed immediately afterward.
+- `main`: `2dff93bd73eda777a6e305ee5a658d146e5aa6c6`.
+- Exact recovered baseline: `c3fd965d438a5a471c969f3fa1b447e3b6e34b31`.
+- Baseline provenance source: local commit `d79d2ebb3c7a0092f833d5883f1522954566e031`.
+- PR #6 fixed the canonical Web CI install command.
+- Canonical baseline tree contains 85 source files and excludes build/bootstrap artifacts.
 
-Recovered prototype history prior to the memory commit ends at `4e63056`. The commit list is recorded in `docs/recovery/LOCAL_HISTORY.md`.
+## Fresh evidence
 
-## Current executable evidence
+GitHub Actions:
 
-Verified on 2026-08-13 against the recovered tree:
+- branch run `31833887410` — success;
+- PR run `31837393708` — success;
+- post-merge `main` run `31837639423` — success;
+- all three runs completed the Rust, Web, and Tauri compile jobs successfully.
 
-- Rust formatting: pass;
-- Rust non-desktop test suite: 14 passed, 0 failed;
-- Rust non-desktop Clippy with `-D warnings`: pass;
-- web test suite: 1 passed, 0 failed;
-- web production build: pass;
-- TypeScript no-emit lint/typecheck: pass;
-- source-manifest integrity: 19 documents validated;
-- Tauri pkg-config prerequisites: resolved from a 412-package checksum-verified local sysroot.
+Fresh local checks on the exact recovered source tree:
 
-The full desktop compile did not finish within tool execution windows and remains unverified until official CI runs.
+- Rust formatting — pass;
+- Rust non-desktop tests — 14 passed, 0 failed;
+- Rust non-desktop Clippy with `-D warnings` — pass;
+- React test — 1 passed, 0 failed;
+- TypeScript lint/typecheck — pass;
+- React production build — pass.
 
-## Blocking condition
+## Current product capability
 
-`Coffee-project-` is still empty. The current GitHub connector is read-only for this project, and the container cannot reach GitHub over the network. No remote mutation was attempted against another repository.
+The repository contains the first architectural vertical proof: chat request -> deterministic/model-provider seam -> typed `workspace.list` call -> Observe policy -> workspace-confined execution -> SQLite evidence -> completed mission -> Axum/React/Tauri result presentation.
 
-Prepared transfer artifacts:
+## Blockers
 
-- `/mnt/data/HermesClaw-official-baseline.bundle` — full Git history;
-- `/mnt/data/HermesClaw-official-baseline.tar.gz` — tracked source snapshot;
-- `/mnt/data/HermesClaw-official-baseline.zip` — tracked source snapshot;
-- accompanying SHA-256 files.
+None for repository establishment or canonical CI.
 
-## Exact next step
+## Exact next action
 
-Populate `leon36000/Coffee-project-` from the prepared bundle or enable GitHub write operations, then run `.github/workflows/ci.yml`. Once CI is green, update `03_CURRENT_STATE.md` and this file with the official commit SHA, workflow run IDs, exact gate results, and the first next capability contract.
+Design and implement the first roadmap Phase 3 increment: a constrained read-only `workspace.read` capability with shared workspace-boundary enforcement, explicit UTF-8 and byte limits, deterministic security tests, model-tool codecs, evidence, and end-to-end proof. Do not add process execution or file mutation in the same change.
