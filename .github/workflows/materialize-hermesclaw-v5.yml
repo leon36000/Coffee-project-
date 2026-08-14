@@ -23,7 +23,7 @@ permissions:
 
 concurrency:
   group: hermesclaw-baseline-v5-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   verify-and-materialize:
@@ -111,9 +111,11 @@ jobs:
         shell: bash
         env:
           GIT_INDEX_FILE: /tmp/hermesclaw-materialize.index
+          GIT_TERMINAL_PROMPT: '0'
         run: |
           set -euo pipefail
           expected_local_commit="$(cat bootstrap/EXPECTED_LOCAL_COMMIT)"
+          manifest="$GITHUB_WORKSPACE/bootstrap/FINAL_FILE_MANIFEST.sha256"
 
           git config user.name "HermesClaw Baseline Bot"
           git config user.email "actions@users.noreply.github.com"
@@ -121,21 +123,39 @@ jobs:
           rm -f "$GIT_INDEX_FILE"
           git read-tree "$GITHUB_SHA^{tree}"
 
-          while IFS= read -r -d '' file; do
-            relative_path="${file#/tmp/hermesclaw-root/}"
+          manifest_entries="$(wc -l < "$manifest" | tr -d ' ')"
+          test "$manifest_entries" -eq 85
+          staged_entries=0
+
+          while read -r expected_hash relative_path; do
+            test -n "$expected_hash"
+            test -n "$relative_path"
+            file="/tmp/hermesclaw-root/$relative_path"
+            test -f "$file"
+            actual_hash="$(sha256sum "$file" | cut -d' ' -f1)"
+            test "$actual_hash" = "$expected_hash"
+
             if [[ "$relative_path" == ".github/workflows/ci.yml" ]]; then
               continue
             fi
+
             blob_sha="$(git hash-object -w -- "$file")"
             git update-index --add --cacheinfo 100644 "$blob_sha" "$relative_path"
-          done < <(find /tmp/hermesclaw-root -type f -print0 | sort -z)
+            staged_entries=$((staged_entries + 1))
+          done < "$manifest"
 
+          test "$staged_entries" -eq 84
           published_tree="$(git write-tree)"
-          test "$(git ls-tree -r --name-only "$published_tree" | grep -c '^source/00_PROJECT_CONSTITUTION\.md$')" -eq 1
-          test "$(git ls-tree -r --name-only "$published_tree" | grep -c '^crates/hc-agent/src/lib\.rs$')" -eq 1
-          test "$(git ls-tree -r --name-only "$published_tree" | grep -c '^apps/web/src/App\.tsx$')" -eq 1
-          test "$(git ls-tree -r --name-only "$published_tree" | grep -c '^bootstrap/v5/READY$')" -eq 1
-          test "$(git ls-tree -r --name-only "$published_tree" | grep -c '^\.github/workflows/ci\.yml$')" -eq 0
+          published_paths="$(git ls-tree -r --name-only "$published_tree")"
+
+          grep -qx 'source/00_PROJECT_CONSTITUTION.md' <<< "$published_paths"
+          grep -qx 'crates/hc-agent/src/lib.rs' <<< "$published_paths"
+          grep -qx 'apps/web/src/App.tsx' <<< "$published_paths"
+          grep -qx 'bootstrap/v5/READY' <<< "$published_paths"
+          if grep -qx '.github/workflows/ci.yml' <<< "$published_paths"; then
+            echo 'canonical CI workflow must be installed by the GitHub integration' >&2
+            exit 1
+          fi
 
           published_commit="$({
             printf '%s\n\n' "chore: stage verified HermesClaw source ${expected_local_commit:0:12}"
@@ -143,4 +163,4 @@ jobs:
             printf 'The canonical CI workflow is installed separately by the GitHub integration.\n'
           } | git commit-tree "$published_tree" -p "$GITHUB_SHA")"
 
-          git push origin "${published_commit}:refs/heads/main"
+          timeout 120 git push origin "${published_commit}:refs/heads/main"
