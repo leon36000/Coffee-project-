@@ -167,6 +167,17 @@ impl ToolCall {
             Provenance::new("model", TrustLevel::ModelGenerated),
         )
     }
+
+    pub fn workspace_read(id: impl Into<String>, path: impl Into<String>) -> Self {
+        Self::new(
+            id,
+            "workspace.read",
+            serde_json::json!({ "path": path.into() }),
+            RiskClass::Low,
+            SideEffectClass::None,
+            Provenance::new("model", TrustLevel::ModelGenerated),
+        )
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
