@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - agent/materialize-baseline-v5
+      - agent/fix-materialization-index
     paths:
       - bootstrap/v5/**
       - .github/workflows/materialize-hermesclaw-v5.yml
@@ -107,13 +108,29 @@ jobs:
       - name: Materialize verified source on main
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('bootstrap/v5/READY') != ''
         shell: bash
+        env:
+          GIT_INDEX_FILE: /tmp/hermesclaw-materialize.index
         run: |
           set -euo pipefail
-          rsync -a --delete --exclude='.git' /tmp/hermesclaw-root/ "$GITHUB_WORKSPACE/"
-          python3 source/raglite/validate_source.py
-          git diff --check
+          expected_local_commit="$(cat bootstrap/v5/EXPECTED_LOCAL_COMMIT)"
+
           git config user.name "HermesClaw Baseline Bot"
           git config user.email "actions@users.noreply.github.com"
-          git add -A
-          git commit -m "chore: materialize verified HermesClaw baseline d79d2ebb3c7a"
-          git push origin HEAD:main
+
+          rm -f "$GIT_INDEX_FILE"
+          git read-tree --empty
+          git --work-tree=/tmp/hermesclaw-root add --all
+          git --work-tree=/tmp/hermesclaw-root diff --cached --check
+
+          published_tree="$(git write-tree)"
+          published_file_count="$(git ls-tree -r --name-only "$published_tree" | wc -l | tr -d ' ')"
+          test "$published_file_count" -eq 85
+          ! git ls-tree -r --name-only "$published_tree" | grep -q '^bootstrap/'
+          test "$(git ls-tree -r --name-only "$published_tree" | grep -c '^\.github/workflows/ci\.yml$')" -eq 1
+
+          published_commit="$({
+            printf '%s\n\n' "chore: materialize verified HermesClaw baseline ${expected_local_commit:0:12}"
+            printf 'Source baseline: %s\n' "$expected_local_commit"
+          } | git commit-tree "$published_tree" -p "$GITHUB_SHA")"
+
+          git push origin "${published_commit}:refs/heads/main"
