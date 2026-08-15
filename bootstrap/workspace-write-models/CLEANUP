@@ -1,0 +1,1 @@
+Remove the Model Fabric transfer fragments only after APPLIED verification exists and workspace.write model support is present.
