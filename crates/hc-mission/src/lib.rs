@@ -17,6 +17,22 @@ impl Mission {
         }
     }
 
+    pub fn restore(
+        id: MissionId,
+        objective: impl Into<String>,
+        state: MissionState,
+    ) -> Result<Self, MissionError> {
+        let objective = objective.into();
+        if objective.trim().is_empty() {
+            return Err(MissionError::EmptyObjective);
+        }
+        Ok(Self {
+            id,
+            objective,
+            state,
+        })
+    }
+
     pub fn id(&self) -> MissionId {
         self.id
     }
@@ -44,6 +60,8 @@ impl Mission {
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum MissionError {
+    #[error("mission objective must not be empty")]
+    EmptyObjective,
     #[error("invalid mission transition: {from} -> {to}")]
     InvalidTransition {
         from: &'static str,
@@ -98,6 +116,24 @@ fn state_name(state: MissionState) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn mission_restores_waiting_approval_with_original_identity() {
+        let id = MissionId::new();
+        let mission = Mission::restore(id, "Create notes.txt", MissionState::WaitingApproval)
+            .expect("restore mission");
+
+        assert_eq!(mission.id(), id);
+        assert_eq!(mission.objective(), "Create notes.txt");
+        assert_eq!(mission.state(), MissionState::WaitingApproval);
+    }
+
+    #[test]
+    fn mission_restore_rejects_empty_objective() {
+        let error =
+            Mission::restore(MissionId::new(), "", MissionState::WaitingApproval).unwrap_err();
+        assert_eq!(error.to_string(), "mission objective must not be empty");
+    }
 
     #[test]
     fn mission_accepts_happy_path_transitions() {
