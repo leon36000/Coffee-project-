@@ -1,0 +1,151 @@
+name: Apply workspace.write model patch
+
+on:
+  push:
+    branches:
+      - agent/workspace-write-design
+    paths:
+      - bootstrap/workspace-write-models/READY
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-workspace-write-model-patch
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reconstruct one uniquely valid patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import base64
+          import hashlib
+          import lzma
+          import re
+          import subprocess
+          from pathlib import Path
+
+          paths = sorted(Path("bootstrap/workspace-write-models").glob("patch-*.b64"))
+          if len(paths) != 2:
+              raise SystemExit(f"expected exactly 2 model patch chunks, found {len(paths)}")
+
+          clean_parts = [re.sub(rb"[^A-Za-z0-9+/=]", b"", path.read_bytes()) for path in paths]
+          encodings = {
+              "merged": b"".join(clean_parts),
+              "merged_without_internal_padding": b"".join(
+                  part.rstrip(b"=") if index < len(clean_parts) - 1 else part
+                  for index, part in enumerate(clean_parts)
+              ),
+          }
+
+          decoded_candidates: dict[str, bytes] = {}
+          for name, encoded in encodings.items():
+              padded = encoded + (b"=" * ((-len(encoded)) % 4))
+              try:
+                  decoded_candidates[name] = base64.b64decode(padded, validate=False)
+              except Exception as exc:
+                  print(f"candidate {name}: base64 decode failed: {exc}")
+
+          try:
+              decoded_candidates["per_chunk"] = b"".join(
+                  base64.b64decode(part + b"=" * ((-len(part)) % 4), validate=False)
+                  for part in clean_parts
+              )
+          except Exception as exc:
+              print(f"candidate per_chunk: base64 decode failed: {exc}")
+
+          valid: dict[str, tuple[str, bytes]] = {}
+          for name, decoded in decoded_candidates.items():
+              try:
+                  patch = lzma.decompress(decoded, format=lzma.FORMAT_XZ)
+              except Exception as exc:
+                  print(f"candidate {name}: XZ decode failed: {exc}")
+                  continue
+
+              digest = hashlib.sha256(patch).hexdigest()
+              patch_path = Path(f"/tmp/{name}.patch")
+              patch_path.write_bytes(patch)
+              result = subprocess.run(
+                  ["git", "apply", "--check", str(patch_path)],
+                  text=True,
+                  capture_output=True,
+              )
+              if result.returncode != 0:
+                  print(f"candidate {name}: apply check failed: {result.stderr}")
+                  continue
+              valid[digest] = (name, patch)
+              print(f"candidate {name}: valid patch sha256={digest} bytes={len(patch)}")
+
+          if len(valid) != 1:
+              raise SystemExit(f"expected one unique valid patch, found {len(valid)}")
+
+          digest, (name, patch) = next(iter(valid.items()))
+          output = Path("/tmp/workspace-write-models.patch")
+          output.write_bytes(patch)
+          Path("/tmp/workspace-write-models.patch.sha256").write_text(
+              f"{digest}  workspace-write-models.patch\n",
+              encoding="utf-8",
+          )
+          print(f"accepted candidate={name} sha256={digest}")
+          PY
+
+      - name: Enforce patch scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply --numstat /tmp/workspace-write-models.patch | tee /tmp/workspace-write-models.numstat
+          paths="$(awk '{print $3}' /tmp/workspace-write-models.numstat | sort -u)"
+          test "$paths" = 'crates/hc-models/src/lib.rs'
+          git apply --check --index /tmp/workspace-write-models.patch
+
+      - name: Install Rust 1.97.1
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+          components: rustfmt, clippy
+
+      - name: Apply patch and run focused TDD gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply --index /tmp/workspace-write-models.patch
+          cargo fmt --all --check
+          cargo test -p hc-models --locked
+          cargo clippy -p hc-models --all-targets --locked -- -D warnings
+          cargo test --workspace --exclude hermesclaw-desktop --locked
+          git diff --cached --check
+
+      - name: Commit verified model support
+        shell: bash
+        run: |
+          set -euo pipefail
+          digest="$(cut -d' ' -f1 /tmp/workspace-write-models.patch.sha256)"
+          git config user.name 'HermesClaw Engineering Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git commit -m "feat(models): support workspace write proposals" -m "Verified patch SHA-256: ${digest}"
+          git push origin HEAD:agent/workspace-write-design
+
+      - name: Upload patch evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace-write-model-patch-evidence
+          path: |
+            /tmp/workspace-write-models.patch
+            /tmp/workspace-write-models.patch.sha256
+            /tmp/workspace-write-models.numstat
+          if-no-files-found: warn
+          retention-days: 1
