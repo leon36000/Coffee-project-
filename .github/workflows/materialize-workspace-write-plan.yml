@@ -25,7 +25,10 @@ jobs:
         run: |
           set -euo pipefail
           cd bootstrap/workspace-write-plan/chunks
-          echo 'e4e22f98cd55626538b497da75885d198f3caa7c23d0f7f0d8f4dfda24d8d25c  000.b64' | sha256sum --check
+          echo 'd6f0668b5e6d2e0f27d38e6aac7992dcb1bdf025c3786f6a4d32bedad311a729  000a.b64' | sha256sum --check
+          echo 'd1f2fd50ef6a8f7af905e4647be846d91d54caa141433a3330eda985bb4e192d  000b.b64' | sha256sum --check
+          echo '8fc6cc5b7609af07eeafb3b1d5560f084efe9d72932bb55756fa6ed51123bafa  000c.b64' | sha256sum --check
+          echo '873a4d5f4e17ee6ff02c026fb34a4afa4848cfa9b4b5dbd7ed09a4533d115bad  000d.b64' | sha256sum --check
           echo 'f1e1d527509ef76c72c3ebc3679f545000cb73f91bcbfe8714b424b26a70a130  001.b64' | sha256sum --check
           echo 'd67fc22eef045cde785631607b5a22839ab3da25046dfbd9b4db973c51d2e0c2  002.b64' | sha256sum --check
           echo '8e8257e0501830adfb414e6882594fea4f8f09769e77c170cd3f7180bd51957b  003.b64' | sha256sum --check
@@ -33,7 +36,7 @@ jobs:
           echo '480026df22e6e072baf0348cc15dbdb2333d46659fa915e59ab76684918deffb  005.b64' | sha256sum --check
           echo 'ac95987cd73cfa1ccf52cf68c32a1e6c7dc5e75b4c02f2fdf0b94c5173f11ab7  006.b64' | sha256sum --check
           echo '0677a681ee88f91625bf46bad14ae04981888b72793d92a3ff4e0227d2e482b6  007.b64' | sha256sum --check
-          cat 000.b64 001.b64 002.b64 003.b64 004.b64 005.b64 006.b64 007.b64 > /tmp/workspace-write-plan.b64
+          cat 000a.b64 000b.b64 000c.b64 000d.b64 001.b64 002.b64 003.b64 004.b64 005.b64 006.b64 007.b64 > /tmp/workspace-write-plan.b64
           cd "$GITHUB_WORKSPACE"
           test "$(wc -c < /tmp/workspace-write-plan.b64)" -eq 29520
           echo '46c14646fc7faf490e6cc8b456dfd4c5720a24763d954b4ae35d19de485578c4  /tmp/workspace-write-plan.b64' | sha256sum --check
