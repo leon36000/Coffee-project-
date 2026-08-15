@@ -1,0 +1,39 @@
+name: Cleanup workspace.write model bootstrap
+
+on:
+  push:
+    branches:
+      - agent/workspace-write-design
+    paths:
+      - bootstrap/workspace-write-models/CLEANUP
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require verified model integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f bootstrap/workspace-write-models/APPLIED
+          grep -q 'WorkspaceWrite' crates/hc-models/src/lib.rs
+          grep -q 'workspace.write' crates/hc-models/src/lib.rs
+
+      - name: Remove transfer-only files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'HermesClaw Engineering Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git rm -r bootstrap/workspace-write-models
+          git commit -m 'chore: remove workspace write model transfer files'
+          git push origin HEAD:agent/workspace-write-design
