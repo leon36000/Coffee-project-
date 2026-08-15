@@ -1,0 +1,64 @@
+name: Diagnose workspace.write model patch
+
+on:
+  push:
+    branches:
+      - agent/workspace-write-design
+    paths:
+      - bootstrap/workspace-write-models/DIAGNOSE
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+
+      - name: Reconstruct patch and capture diagnostics
+        id: inspect
+        shell: bash
+        continue-on-error: true
+        run: |
+          set +e
+          : > /tmp/workspace-write-models.diagnostics.txt
+          {
+            echo '--- chunks'
+            ls -l bootstrap/workspace-write-models/patch-*.b64
+            echo '--- base64 bytes'
+            cat bootstrap/workspace-write-models/patch-*.b64 | wc -c
+            echo '--- decode'
+            cat bootstrap/workspace-write-models/patch-*.b64 \
+              | base64 --decode \
+              > /tmp/workspace-write-models.patch.xz
+            echo "base64_status=$?"
+            xz --test /tmp/workspace-write-models.patch.xz
+            echo "xz_test_status=$?"
+            xz --decompress --stdout /tmp/workspace-write-models.patch.xz \
+              > /tmp/workspace-write-models.patch
+            echo "xz_decode_status=$?"
+            sha256sum /tmp/workspace-write-models.patch \
+              | tee /tmp/workspace-write-models.patch.sha256
+            git apply --check /tmp/workspace-write-models.patch
+            echo "apply_check_status=$?"
+            git apply --numstat /tmp/workspace-write-models.patch \
+              | tee /tmp/workspace-write-models.patch.numstat
+            echo "numstat_status=$?"
+          } 2>&1 | tee /tmp/workspace-write-models.diagnostics.txt
+
+      - name: Upload diagnostics and reconstructed files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace-write-model-patch-diagnostics
+          path: |
+            /tmp/workspace-write-models.diagnostics.txt
+            /tmp/workspace-write-models.patch.xz
+            /tmp/workspace-write-models.patch
+            /tmp/workspace-write-models.patch.sha256
+            /tmp/workspace-write-models.patch.numstat
+          if-no-files-found: warn
+          retention-days: 1
