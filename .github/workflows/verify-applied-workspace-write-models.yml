@@ -1,0 +1,68 @@
+name: Verify applied workspace.write Model Fabric
+
+on:
+  push:
+    branches:
+      - agent/workspace-write-design
+    paths:
+      - crates/hc-models/src/lib.rs
+      - bootstrap/workspace-write-models/OBSERVE
+
+permissions:
+  contents: write
+
+concurrency:
+  group: verify-applied-workspace-write-models
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require workspace.write model support
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'WorkspaceWrite' crates/hc-models/src/lib.rs
+          grep -q 'workspace.write' crates/hc-models/src/lib.rs
+          grep -q 'workspace_write' crates/hc-models/src/lib.rs
+
+      - name: Install Rust 1.97.1
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+          components: rustfmt, clippy
+
+      - name: Run independent model and regression gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all --check
+          cargo test -p hc-models --locked
+          cargo clippy -p hc-models --all-targets --locked -- -D warnings
+          cargo test --workspace --exclude hermesclaw-desktop --locked
+
+      - name: Record verified integration marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p bootstrap/workspace-write-models
+          {
+            echo "verified_commit=$GITHUB_SHA"
+            echo "verified_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } > bootstrap/workspace-write-models/APPLIED
+          git config user.name 'HermesClaw Engineering Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add bootstrap/workspace-write-models/APPLIED
+          if git diff --cached --quiet; then
+            echo 'marker already current'
+          else
+            git commit -m 'test(models): record workspace write model verification'
+            git push origin HEAD:agent/workspace-write-design
+          fi
