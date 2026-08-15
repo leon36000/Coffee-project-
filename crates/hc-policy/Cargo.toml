@@ -8,6 +8,9 @@ publish.workspace = true
 
 [dependencies]
 hc-domain = { path = "../hc-domain" }
-
-[dev-dependencies]
+hex.workspace = true
+serde.workspace = true
+serde_jcs.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
