@@ -20,11 +20,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Decode and verify plan
+      - name: Reconstruct, decode, and verify plan
         shell: bash
         run: |
           set -euo pipefail
-          base64 --decode bootstrap/workspace-write-plan/plan.xz.b64 > /tmp/workspace-write-plan.md.xz
+          head -c 20000 bootstrap/workspace-write-plan/plan.xz.b64 > /tmp/workspace-write-plan.b64
+          echo '123de93f2a9ebd3ce447d1731030cd151ac08e81ae4a8bd124a037c3ecd58596  /tmp/workspace-write-plan.b64' | sha256sum --check
+          cat bootstrap/workspace-write-plan/chunks/005.b64 \
+              bootstrap/workspace-write-plan/chunks/006.b64 \
+              bootstrap/workspace-write-plan/chunks/007.b64 >> /tmp/workspace-write-plan.b64
+          test "$(wc -c < /tmp/workspace-write-plan.b64)" -eq 29520
+          echo '46c14646fc7faf490e6cc8b456dfd4c5720a24763d954b4ae35d19de485578c4  /tmp/workspace-write-plan.b64' | sha256sum --check
+          base64 --decode /tmp/workspace-write-plan.b64 > /tmp/workspace-write-plan.md.xz
           echo '0e87c9454913848ba7bc8c812578c62f617cf4c8a8e7e49b9fb00197876a2be0  /tmp/workspace-write-plan.md.xz' | sha256sum --check
           xz --test /tmp/workspace-write-plan.md.xz
           mkdir -p docs/superpowers/plans
