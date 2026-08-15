@@ -1,0 +1,48 @@
+name: Export current workspace.write branch
+
+on:
+  push:
+    branches:
+      - agent/workspace-write-design
+    paths:
+      - bootstrap/workspace-write-export-current/READY
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+
+      - name: Create deterministic source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar \
+            --exclude='./.git' \
+            --exclude='./target' \
+            --exclude='./node_modules' \
+            --exclude='./dist' \
+            --exclude='./bootstrap' \
+            --exclude='./.github/workflows/export-workspace-write-current.yml' \
+            --sort=name \
+            --mtime='UTC 2026-08-15' \
+            --owner=0 \
+            --group=0 \
+            --numeric-owner \
+            -cJf /tmp/hermesclaw-workspace-write-current.tar.xz .
+          sha256sum /tmp/hermesclaw-workspace-write-current.tar.xz > /tmp/hermesclaw-workspace-write-current.tar.xz.sha256
+
+      - name: Upload source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermesclaw-workspace-write-current
+          path: |
+            /tmp/hermesclaw-workspace-write-current.tar.xz
+            /tmp/hermesclaw-workspace-write-current.tar.xz.sha256
+          if-no-files-found: error
+          retention-days: 1
