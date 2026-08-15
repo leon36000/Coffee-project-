@@ -1,0 +1,1 @@
+Apply the uniquely reconstructable workspace.write Model Fabric patch, restricted to hc-models, and commit it only after focused and workspace Rust gates pass.
