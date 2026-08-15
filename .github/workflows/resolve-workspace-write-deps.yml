@@ -37,11 +37,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf /tmp/hermesclaw-vendor /tmp/workspace-write-deps
           cargo vendor /tmp/hermesclaw-vendor >/tmp/vendor-config.toml
           mkdir -p /tmp/workspace-write-deps
           cp Cargo.lock /tmp/workspace-write-deps/Cargo.lock
-          cp -a /tmp/hermesclaw-vendor/serde_jcs-* /tmp/workspace-write-deps/
-          cp -a /tmp/hermesclaw-vendor/ryu-js-* /tmp/workspace-write-deps/
+
+          for crate in serde_jcs ryu-js; do
+            source_dir="$(find /tmp/hermesclaw-vendor -mindepth 1 -maxdepth 1 -type d -name "${crate}*" -print -quit)"
+            test -n "$source_dir"
+            echo "exporting $source_dir"
+            cp -a "$source_dir" /tmp/workspace-write-deps/
+          done
+
           tar -C /tmp -cJf /tmp/workspace-write-deps.tar.xz workspace-write-deps
           sha256sum /tmp/workspace-write-deps.tar.xz > /tmp/workspace-write-deps.tar.xz.sha256
 
