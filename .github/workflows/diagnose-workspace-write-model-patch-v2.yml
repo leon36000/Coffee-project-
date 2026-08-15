@@ -1,0 +1,133 @@
+name: Diagnose workspace.write model patch v2
+
+on:
+  push:
+    branches:
+      - agent/workspace-write-design
+    paths:
+      - bootstrap/workspace-write-models/DIAGNOSE2
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+
+      - name: Inspect, sanitize, and reconstruct
+        shell: bash
+        continue-on-error: true
+        run: |
+          set +e
+          python3 - <<'PY' 2>&1 | tee /tmp/workspace-write-models-v2.diagnostics.txt
+          from __future__ import annotations
+
+          import base64
+          import hashlib
+          import lzma
+          import re
+          import subprocess
+          from pathlib import Path
+
+          alphabet = set(b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\r\n\t ")
+          paths = sorted(Path("bootstrap/workspace-write-models").glob("patch-*.b64"))
+          print(f"chunk_count={len(paths)}")
+          raw_parts: list[bytes] = []
+          clean_parts: list[bytes] = []
+
+          for path in paths:
+              raw = path.read_bytes()
+              invalid = [(index, byte) for index, byte in enumerate(raw) if byte not in alphabet]
+              clean = re.sub(rb"[^A-Za-z0-9+/=]", b"", raw)
+              print(
+                  f"{path.name}: raw={len(raw)} clean={len(clean)} mod4={len(clean) % 4} "
+                  f"equals={clean.count(b'=')} invalid_count={len(invalid)} invalid={invalid[:50]}"
+              )
+              raw_parts.append(raw)
+              clean_parts.append(clean)
+              Path(f"/tmp/{path.name}.raw").write_bytes(raw)
+
+          merged_raw = b"".join(raw_parts)
+          merged_clean = b"".join(clean_parts)
+          Path("/tmp/workspace-write-models.merged.raw").write_bytes(merged_raw)
+          Path("/tmp/workspace-write-models.merged.clean.b64").write_bytes(merged_clean)
+          print(
+              f"merged_raw={len(merged_raw)} merged_clean={len(merged_clean)} "
+              f"mod4={len(merged_clean) % 4} equals={merged_clean.count(b'=')}"
+          )
+
+          candidates: dict[str, bytes] = {}
+          encodings = {
+              "merged_clean": merged_clean,
+              "without_internal_padding": b"".join(
+                  part.rstrip(b"=") if index < len(clean_parts) - 1 else part
+                  for index, part in enumerate(clean_parts)
+              ),
+          }
+          for name, encoded in encodings.items():
+              padded = encoded + (b"=" * ((-len(encoded)) % 4))
+              for validate in (True, False):
+                  key = f"{name}_validate_{validate}"
+                  try:
+                      decoded = base64.b64decode(padded, validate=validate)
+                  except Exception as exc:
+                      print(f"{key}: base64_error={type(exc).__name__}: {exc}")
+                      continue
+                  candidates[key] = decoded
+                  print(
+                      f"{key}: decoded={len(decoded)} sha256={hashlib.sha256(decoded).hexdigest()}"
+                  )
+
+          try:
+              per_chunk = b"".join(
+                  base64.b64decode(part + b"=" * ((-len(part)) % 4), validate=False)
+                  for part in clean_parts
+              )
+              candidates["per_chunk"] = per_chunk
+              print(
+                  f"per_chunk: decoded={len(per_chunk)} sha256={hashlib.sha256(per_chunk).hexdigest()}"
+              )
+          except Exception as exc:
+              print(f"per_chunk: base64_error={type(exc).__name__}: {exc}")
+
+          for name, decoded in candidates.items():
+              xz_path = Path(f"/tmp/{name}.xz")
+              patch_path = Path(f"/tmp/{name}.patch")
+              xz_path.write_bytes(decoded)
+              try:
+                  patch = lzma.decompress(decoded, format=lzma.FORMAT_XZ)
+              except Exception as exc:
+                  print(f"{name}: xz_error={type(exc).__name__}: {exc}")
+                  continue
+              patch_path.write_bytes(patch)
+              print(
+                  f"{name}: patch_bytes={len(patch)} patch_sha256={hashlib.sha256(patch).hexdigest()}"
+              )
+              result = subprocess.run(
+                  ["git", "apply", "--check", str(patch_path)],
+                  text=True,
+                  capture_output=True,
+              )
+              print(
+                  f"{name}: apply_status={result.returncode} stdout={result.stdout!r} stderr={result.stderr!r}"
+              )
+          PY
+
+      - name: Upload complete diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace-write-model-patch-diagnostics-v2
+          path: |
+            /tmp/workspace-write-models-v2.diagnostics.txt
+            /tmp/patch-*.b64.raw
+            /tmp/workspace-write-models.merged.raw
+            /tmp/workspace-write-models.merged.clean.b64
+            /tmp/*.xz
+            /tmp/*.patch
+          if-no-files-found: warn
+          retention-days: 1
