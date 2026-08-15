@@ -47,6 +47,8 @@ jobs:
         run: |
           set -euo pipefail
           git apply --index /tmp/workspace-write-state.patch
+          cargo fmt --all
+          git add Cargo.lock Cargo.toml crates
           cargo fmt --all --check
           cargo test --workspace --exclude hermesclaw-desktop --locked
           cargo clippy --workspace --exclude hermesclaw-desktop --all-targets --locked -- -D warnings
