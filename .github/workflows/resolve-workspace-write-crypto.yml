@@ -1,0 +1,97 @@
+name: Resolve workspace.write crypto dependencies
+
+on:
+  push:
+    branches:
+      - agent/workspace-write-design
+    paths:
+      - bootstrap/workspace-write-crypto/**
+
+permissions:
+  contents: write
+
+jobs:
+  resolve:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust 1.97.1
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+          components: clippy
+
+      - name: Resolve and verify crypto dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp Cargo.lock /tmp/Cargo.lock.before
+          cargo test -p hc-policy
+          cargo clippy -p hc-policy --all-targets -- -D warnings
+
+      - name: Export only newly locked crates
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/hermesclaw-vendor /tmp/workspace-write-crypto
+          cargo vendor --versioned-dirs /tmp/hermesclaw-vendor >/tmp/vendor-config.toml
+          mkdir -p /tmp/workspace-write-crypto
+          cp Cargo.lock /tmp/workspace-write-crypto/Cargo.lock
+
+          python3 - <<'PY' >/tmp/new-package-dirs.txt
+          import tomllib
+          from pathlib import Path
+
+          def registry_packages(path: str) -> set[tuple[str, str]]:
+              payload = tomllib.loads(Path(path).read_text(encoding='utf-8'))
+              return {
+                  (package['name'], package['version'])
+                  for package in payload['package']
+                  if package.get('source', '').startswith('registry+')
+              }
+
+          before = registry_packages('/tmp/Cargo.lock.before')
+          after = registry_packages('Cargo.lock')
+          for name, version in sorted(after - before):
+              print(f'{name}-{version}')
+          PY
+
+          test -s /tmp/new-package-dirs.txt
+          while IFS= read -r directory; do
+            test -d "/tmp/hermesclaw-vendor/$directory"
+            echo "exporting $directory"
+            cp -a "/tmp/hermesclaw-vendor/$directory" /tmp/workspace-write-crypto/
+          done </tmp/new-package-dirs.txt
+
+          cp /tmp/new-package-dirs.txt /tmp/workspace-write-crypto/NEW_PACKAGES
+          tar -C /tmp -cJf /tmp/workspace-write-crypto.tar.xz workspace-write-crypto
+          sha256sum /tmp/workspace-write-crypto.tar.xz > /tmp/workspace-write-crypto.tar.xz.sha256
+
+      - name: Commit lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- Cargo.lock; then
+            echo 'Cargo.lock already current'
+            exit 0
+          fi
+          git config user.name 'HermesClaw Engineering Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add Cargo.lock
+          git commit -m 'build: lock workspace write crypto dependencies'
+          git push origin HEAD:agent/workspace-write-design
+
+      - name: Upload local vendor delta
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace-write-crypto-dependencies
+          path: |
+            /tmp/workspace-write-crypto.tar.xz
+            /tmp/workspace-write-crypto.tar.xz.sha256
+          if-no-files-found: error
+          retention-days: 1
