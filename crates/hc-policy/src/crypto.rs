@@ -91,9 +91,7 @@ struct AssociatedData<'a> {
     schema_version: u8,
 }
 
-fn canonical_associated_data(
-    context: &CheckpointContext,
-) -> Result<Vec<u8>, ApprovalCryptoError> {
+fn canonical_associated_data(context: &CheckpointContext) -> Result<Vec<u8>, ApprovalCryptoError> {
     let data = AssociatedData {
         approval_id: context.approval_id.to_string(),
         trace_id: context.trace_id.to_string(),
@@ -101,8 +99,7 @@ fn canonical_associated_data(
         action_digest: context.action_digest.as_str(),
         schema_version: context.schema_version,
     };
-    serde_jcs::to_vec(&data)
-        .map_err(|error| ApprovalCryptoError::AssociatedData(error.to_string()))
+    serde_jcs::to_vec(&data).map_err(|error| ApprovalCryptoError::AssociatedData(error.to_string()))
 }
 
 #[derive(Debug, Error)]
@@ -153,9 +150,9 @@ mod tests {
 
     #[test]
     fn wrong_associated_data_or_key_fails_closed() {
-        let cipher = CheckpointCipher::new(Arc::new(
-            InMemoryApprovalKeyProvider::new("key-a", [1_u8; 32]),
-        ));
+        let cipher = CheckpointCipher::new(Arc::new(InMemoryApprovalKeyProvider::new(
+            "key-a", [1_u8; 32],
+        )));
         let context = test_context();
         let sealed = cipher.seal(&context, b"secret").unwrap();
 
@@ -171,9 +168,9 @@ mod tests {
             Err(ApprovalCryptoError::AuthenticationFailed)
         ));
 
-        let wrong_key = CheckpointCipher::new(Arc::new(
-            InMemoryApprovalKeyProvider::new("key-a", [2_u8; 32]),
-        ));
+        let wrong_key = CheckpointCipher::new(Arc::new(InMemoryApprovalKeyProvider::new(
+            "key-a", [2_u8; 32],
+        )));
         assert!(matches!(
             wrong_key.open(&context, &sealed),
             Err(ApprovalCryptoError::AuthenticationFailed)
@@ -182,9 +179,9 @@ mod tests {
 
     #[test]
     fn ciphertext_cannot_be_swapped_between_approval_rows() {
-        let cipher = CheckpointCipher::new(Arc::new(
-            InMemoryApprovalKeyProvider::new("key-a", [3_u8; 32]),
-        ));
+        let cipher = CheckpointCipher::new(Arc::new(InMemoryApprovalKeyProvider::new(
+            "key-a", [3_u8; 32],
+        )));
         let first = test_context();
         let mut second = first.clone();
         second.approval_id = ApprovalId::new();

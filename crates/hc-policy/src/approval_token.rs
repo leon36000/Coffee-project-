@@ -12,16 +12,20 @@ impl VerifiedApproval {
         self.approval_id
     }
 
+    pub(crate) fn new(approval_id: ApprovalId, action_digest: ActionDigest) -> Self {
+        Self {
+            approval_id,
+            action_digest,
+        }
+    }
+
     pub(crate) fn matches(&self, digest: &ActionDigest) -> bool {
         &self.action_digest == digest
     }
 
     #[cfg(test)]
     pub(crate) fn for_test(approval_id: ApprovalId, action_digest: ActionDigest) -> Self {
-        Self {
-            approval_id,
-            action_digest,
-        }
+        Self::new(approval_id, action_digest)
     }
 }
 

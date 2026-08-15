@@ -59,6 +59,14 @@ impl fmt::Display for MissionId {
     }
 }
 
+impl FromStr for MissionId {
+    type Err = uuid::Error;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Ok(Self(Uuid::parse_str(value)?))
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TrustLevel {
@@ -263,6 +271,12 @@ mod tests {
             })
         );
         assert_eq!(call.provenance.trust, TrustLevel::ModelGenerated);
+    }
+
+    #[test]
+    fn mission_id_round_trips_through_string() {
+        let id = MissionId::new();
+        assert_eq!(id.to_string().parse::<MissionId>().unwrap(), id);
     }
 
     #[test]

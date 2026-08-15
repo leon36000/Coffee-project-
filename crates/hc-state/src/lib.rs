@@ -1,27 +1,37 @@
+mod approval;
+pub use approval::SqliteApprovalRepository;
+
 use chrono::{DateTime, Utc};
 use hc_domain::{EvidenceRecord, MissionId, PolicyDecision, TraceId};
 use rusqlite::{params, Connection};
-use std::{path::Path, sync::Mutex};
+use std::{
+    path::Path,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 use thiserror::Error;
 
-pub struct EvidenceStore {
-    connection: Mutex<Connection>,
+pub(crate) type SharedConnection = Arc<Mutex<Connection>>;
+
+#[derive(Clone)]
+pub struct SqliteState {
+    connection: SharedConnection,
 }
 
-impl EvidenceStore {
+impl SqliteState {
     pub fn in_memory() -> Result<Self, StateError> {
-        let connection = Connection::open_in_memory()?;
-        Self::from_connection(connection)
+        Self::from_connection(Connection::open_in_memory()?)
     }
 
     pub fn open(path: impl AsRef<Path>) -> Result<Self, StateError> {
-        let connection = Connection::open(path)?;
-        Self::from_connection(connection)
+        Self::from_connection(Connection::open(path)?)
     }
 
     fn from_connection(connection: Connection) -> Result<Self, StateError> {
+        connection.busy_timeout(Duration::from_secs(5))?;
         connection.execute_batch(
-            "CREATE TABLE IF NOT EXISTS evidence (
+            "PRAGMA foreign_keys = ON;
+             CREATE TABLE IF NOT EXISTS evidence (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 trace_id TEXT NOT NULL,
                 mission_id TEXT NOT NULL,
@@ -33,12 +43,57 @@ impl EvidenceStore {
                 recorded_at TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS idx_evidence_trace_id
-                ON evidence(trace_id, id);",
+                ON evidence(trace_id, id);
+            CREATE TABLE IF NOT EXISTS approvals (
+                approval_id TEXT PRIMARY KEY,
+                trace_id TEXT NOT NULL,
+                mission_id TEXT NOT NULL,
+                capability_id TEXT NOT NULL,
+                action_digest TEXT NOT NULL,
+                reason TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                status TEXT NOT NULL,
+                requested_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                decided_at TEXT,
+                decision_actor TEXT,
+                failure_code TEXT,
+                ciphertext BLOB,
+                nonce BLOB,
+                key_id TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_approvals_status_expiry
+                ON approvals(status, expires_at);",
         )?;
 
         Ok(Self {
-            connection: Mutex::new(connection),
+            connection: Arc::new(Mutex::new(connection)),
         })
+    }
+
+    pub fn evidence_store(&self) -> EvidenceStore {
+        EvidenceStore {
+            connection: Arc::clone(&self.connection),
+        }
+    }
+
+    pub fn approval_repository(&self) -> SqliteApprovalRepository {
+        SqliteApprovalRepository::new(Arc::clone(&self.connection))
+    }
+}
+
+#[derive(Clone)]
+pub struct EvidenceStore {
+    connection: SharedConnection,
+}
+
+impl EvidenceStore {
+    pub fn in_memory() -> Result<Self, StateError> {
+        Ok(SqliteState::in_memory()?.evidence_store())
+    }
+
+    pub fn open(path: impl AsRef<Path>) -> Result<Self, StateError> {
+        Ok(SqliteState::open(path)?.evidence_store())
     }
 
     pub fn append(&self, record: &EvidenceRecord) -> Result<(), StateError> {
@@ -137,7 +192,8 @@ mod tests {
 
     #[test]
     fn evidence_round_trips_through_sqlite_by_trace() {
-        let store = EvidenceStore::in_memory().expect("open in-memory store");
+        let state = SqliteState::in_memory().expect("open in-memory state");
+        let store = state.evidence_store();
         let trace_id = TraceId::new();
         let mission_id = MissionId::new();
         let record = EvidenceRecord {
@@ -155,5 +211,14 @@ mod tests {
         let rows = store.list_by_trace(trace_id).expect("read evidence");
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0], record);
+    }
+
+    #[test]
+    fn evidence_and_approvals_share_one_sqlite_state() {
+        let state = SqliteState::in_memory().unwrap();
+        let evidence = state.evidence_store();
+        let approvals = state.approval_repository();
+
+        assert!(Arc::ptr_eq(&evidence.connection, &approvals.connection));
     }
 }

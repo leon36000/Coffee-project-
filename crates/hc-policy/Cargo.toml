@@ -9,6 +9,7 @@ publish.workspace = true
 [dependencies]
 base64.workspace = true
 chacha20poly1305.workspace = true
+chrono.workspace = true
 hc-domain = { path = "../hc-domain" }
 hex.workspace = true
 serde.workspace = true

@@ -92,18 +92,12 @@ mod tests {
     #[test]
     fn any_action_change_changes_digest() {
         let original = ToolCall::workspace_write_create("call-1", "notes.txt", "hello");
-        let changed_content =
-            ToolCall::workspace_write_create("call-1", "notes.txt", "Hello");
-        let changed_path =
-            ToolCall::workspace_write_create("call-1", "other.txt", "hello");
-        let changed_call =
-            ToolCall::workspace_write_create("call-2", "notes.txt", "hello");
+        let changed_content = ToolCall::workspace_write_create("call-1", "notes.txt", "Hello");
+        let changed_path = ToolCall::workspace_write_create("call-1", "other.txt", "hello");
+        let changed_call = ToolCall::workspace_write_create("call-2", "notes.txt", "hello");
 
         let digest = ActionDigest::for_call(&original).unwrap();
-        assert_ne!(
-            digest,
-            ActionDigest::for_call(&changed_content).unwrap()
-        );
+        assert_ne!(digest, ActionDigest::for_call(&changed_content).unwrap());
         assert_ne!(digest, ActionDigest::for_call(&changed_path).unwrap());
         assert_ne!(digest, ActionDigest::for_call(&changed_call).unwrap());
         assert_eq!(digest.as_str().len(), 64);

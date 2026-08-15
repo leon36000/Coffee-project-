@@ -1,10 +1,15 @@
 use hc_domain::{AutonomyProfile, PolicyDecision, RiskClass, SideEffectClass, ToolCall};
 
+mod approval;
 mod approval_token;
 mod crypto;
 mod digest;
 mod key_provider;
 
+pub use approval::{
+    ApprovalError, ApprovalRepository, ApprovalRepositoryError, ApprovalService,
+    ApprovedCheckpoint, NewApproval, StoredApproval,
+};
 pub use approval_token::{PolicyContext, VerifiedApproval};
 pub use crypto::{ApprovalCryptoError, CheckpointCipher, CheckpointContext, EncryptedCheckpoint};
 pub use digest::{ActionDigest, DigestError};
