@@ -1,0 +1,30 @@
+name: Export workspace.write source
+
+on:
+  push:
+    branches:
+      - agent/workspace-write
+    paths:
+      - .github/workflows/export-workspace-write-source.yml
+      - bootstrap/workspace-write-export/READY
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create deterministic source archive
+        run: git archive --format=tar.gz --output=/tmp/hermesclaw-workspace-write-source.tar.gz HEAD
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermesclaw-workspace-write-source
+          path: /tmp/hermesclaw-workspace-write-source.tar.gz
+          if-no-files-found: error
+          retention-days: 1
