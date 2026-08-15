@@ -1,3 +1,6 @@
+mod approval;
+pub use approval::*;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -178,6 +181,25 @@ impl ToolCall {
             Provenance::new("model", TrustLevel::ModelGenerated),
         )
     }
+
+    pub fn workspace_write_create(
+        id: impl Into<String>,
+        path: impl Into<String>,
+        content: impl Into<String>,
+    ) -> Self {
+        Self::new(
+            id,
+            "workspace.write",
+            serde_json::json!({
+                "path": path.into(),
+                "content": content.into(),
+                "mode": "create_new"
+            }),
+            RiskClass::Medium,
+            SideEffectClass::Mutation,
+            Provenance::new("model", TrustLevel::ModelGenerated),
+        )
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -222,6 +244,24 @@ mod tests {
         assert_eq!(call.risk, RiskClass::Low);
         assert_eq!(call.side_effect, SideEffectClass::None);
         assert_eq!(call.provenance.source, "model");
+        assert_eq!(call.provenance.trust, TrustLevel::ModelGenerated);
+    }
+
+    #[test]
+    fn workspace_write_constructor_is_medium_risk_create_only_mutation() {
+        let call = ToolCall::workspace_write_create("call-write", "notes/new-file.txt", "hello");
+
+        assert_eq!(call.capability_id, "workspace.write");
+        assert_eq!(call.risk, RiskClass::Medium);
+        assert_eq!(call.side_effect, SideEffectClass::Mutation);
+        assert_eq!(
+            call.arguments,
+            serde_json::json!({
+                "path": "notes/new-file.txt",
+                "content": "hello",
+                "mode": "create_new"
+            })
+        );
         assert_eq!(call.provenance.trust, TrustLevel::ModelGenerated);
     }
 
