@@ -1,0 +1,62 @@
+name: Apply durable approval state patch
+
+on:
+  push:
+    branches:
+      - agent/workspace-write-design
+    paths:
+      - bootstrap/workspace-write-state/READY
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-workspace-write-state
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust 1.97.1
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+          components: rustfmt, clippy
+
+      - name: Reconstruct and verify patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat bootstrap/workspace-write-state/patch-*.b64 \
+            | base64 --decode \
+            | xz --decompress \
+            > /tmp/workspace-write-state.patch
+          echo '297cbba829dc4ecad68439364ccf19f43852a4a9249070824014b160292c20b2  /tmp/workspace-write-state.patch' \
+            | sha256sum --check
+          git apply --check --index /tmp/workspace-write-state.patch
+
+      - name: Apply patch and verify Rust gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply --index /tmp/workspace-write-state.patch
+          cargo fmt --all --check
+          cargo test --workspace --exclude hermesclaw-desktop --locked
+          cargo clippy --workspace --exclude hermesclaw-desktop --all-targets --locked -- -D warnings
+          git diff --cached --check
+
+      - name: Commit verified state implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'HermesClaw Engineering Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git commit -m 'feat(state): persist durable single-use approvals'
+          git push origin HEAD:agent/workspace-write-design
