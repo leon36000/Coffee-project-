@@ -5,7 +5,7 @@ on:
     branches:
       - agent/workspace-write-design
     paths:
-      - bootstrap/workspace-write-deps/READY
+      - bootstrap/workspace-write-deps/**
 
 permissions:
   contents: write
