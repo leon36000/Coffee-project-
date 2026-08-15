@@ -1,0 +1,95 @@
+name: Vendor workspace.write dependencies
+
+on:
+  push:
+    branches:
+      - agent/workspace-write
+    paths:
+      - bootstrap/workspace-write-deps/READY
+
+permissions:
+  contents: read
+
+jobs:
+  vendor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust 1.97.1
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+      - name: Add the approved dependency graph in the isolated checkout
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('Cargo.toml')
+          text = root.read_text()
+          marker = 'hex = "0.4"\n'
+          additions = (
+              'base64 = "0.22"\n'
+              'chacha20poly1305 = "0.10"\n'
+              'keyring = { version = "3", features = ["linux-native-sync-persistent", "crypto-rust"] }\n'
+              'serde_jcs = "0.1"\n'
+              'zeroize = { version = "1", features = ["derive"] }\n'
+          )
+          if 'serde_jcs = "0.1"' not in text:
+              text = text.replace(marker, marker + additions)
+          root.write_text(text)
+
+          policy = Path('crates/hc-policy/Cargo.toml')
+          text = policy.read_text()
+          marker = 'hc-domain = { path = "../hc-domain" }\n'
+          additions = (
+              'base64.workspace = true\n'
+              'chacha20poly1305.workspace = true\n'
+              'hex.workspace = true\n'
+              'serde.workspace = true\n'
+              'serde_jcs.workspace = true\n'
+              'sha2.workspace = true\n'
+              'thiserror.workspace = true\n'
+              'zeroize.workspace = true\n'
+          )
+          if 'serde_jcs.workspace = true' not in text:
+              text = text.replace(marker, marker + additions)
+          policy.write_text(text)
+
+          desktop = Path('apps/desktop/src-tauri/Cargo.toml')
+          text = desktop.read_text()
+          marker = '[dependencies]\n'
+          additions = (
+              'base64.workspace = true\n'
+              'chacha20poly1305.workspace = true\n'
+              'keyring.workspace = true\n'
+          )
+          if 'keyring.workspace = true' not in text:
+              text = text.replace(marker, marker + additions)
+          desktop.write_text(text)
+          PY
+      - name: Resolve and vendor the exact graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo generate-lockfile
+          cargo vendor --locked --versioned-dirs /tmp/hermesclaw-vendor > /tmp/vendor-config.toml
+          mkdir -p /tmp/hermesclaw-workspace-write-deps/.cargo
+          cp Cargo.lock /tmp/hermesclaw-workspace-write-deps/Cargo.lock
+          cp Cargo.toml /tmp/hermesclaw-workspace-write-deps/Cargo.toml
+          cp crates/hc-policy/Cargo.toml /tmp/hermesclaw-workspace-write-deps/hc-policy.Cargo.toml
+          cp apps/desktop/src-tauri/Cargo.toml /tmp/hermesclaw-workspace-write-deps/desktop.Cargo.toml
+          cp /tmp/vendor-config.toml /tmp/hermesclaw-workspace-write-deps/.cargo/config.toml
+          mv /tmp/hermesclaw-vendor /tmp/hermesclaw-workspace-write-deps/vendor
+          tar -C /tmp -czf /tmp/hermesclaw-workspace-write-deps.tar.gz hermesclaw-workspace-write-deps
+          sha256sum /tmp/hermesclaw-workspace-write-deps.tar.gz > /tmp/hermesclaw-workspace-write-deps.tar.gz.sha256
+      - name: Upload vendored dependency bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermesclaw-workspace-write-deps
+          path: |
+            /tmp/hermesclaw-workspace-write-deps.tar.gz
+            /tmp/hermesclaw-workspace-write-deps.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 1
