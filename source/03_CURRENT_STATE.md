@@ -101,7 +101,7 @@ Use isolated worktrees for independent writers and one integration owner. Agent 
 
 ## Historical workspace.write branch constraint
 
-Historical remote `agent/workspace-write-design` was verified at `92166d3eb86a1490f0c21093aa08f8268d2d129e`, 94 commits ahead of its old `main` merge-base`. It contains useful behavior mixed with temporary `.github/workflows/*workspace-write*` transport and `bootstrap/workspace-write-*` payloads.
+Historical remote `agent/workspace-write-design` was verified at `92166d3eb86a1490f0c21093aa08f8268d2d129e`, 94 commits ahead of its old `main` merge-base. It contains useful behavior mixed with temporary `.github/workflows/*workspace-write*` transport and `bootstrap/workspace-write-*` payloads.
 
 Never merge or cherry-pick that branch wholesale. Continue capability-bounded clean reconstruction with TDD.
 
