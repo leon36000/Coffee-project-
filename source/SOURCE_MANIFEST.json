@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "project": "HermesClaw",
-  "generated_at": "2026-08-14",
-  "canonical_rule": "Markdown is truth; RAGLite/DuckDB is a disposable retrieval index.",
+  "generated_at": "2026-08-18",
+  "canonical_rule": "Markdown is truth; operational continuity stores and RAG indexes are derived.",
   "documents": [
     {
       "path": "00_PROJECT_CONSTITUTION.md",
@@ -37,7 +37,7 @@
       "authority": "current-state",
       "status": "current",
       "priority": 930,
-      "sha256": "7f8c0ba817bba6a8ed68818477b2c5393d10a5f16348ffcf646c1af9ad89185f",
+      "sha256": "70717ed4b6fdf2864770b5489c55141154b25f5aa2e646b32d858c7f9ac22279",
       "indexed": true
     },
     {
@@ -46,7 +46,7 @@
       "authority": "handoff",
       "status": "current",
       "priority": 920,
-      "sha256": "6fcfda9fb5ece541d2af7f6a193b8c3188c840e2c3664245b1f97b4597adaebb",
+      "sha256": "cc67ae754c1e6455afa5e678f1dd82909c9c8cdfa7994c15ea8bb44a36ac84be",
       "indexed": true
     },
     {
@@ -64,7 +64,7 @@
       "authority": "memory-policy",
       "status": "canonical",
       "priority": 900,
-      "sha256": "920e7643959169453c84ccd9fce993141ba87519cfa2f2830623aec78b04425b",
+      "sha256": "2dd1e0dba1074aa9063c5f484d6fb316e615cdd44b22e5e59d1e69eb9368cc57",
       "indexed": true
     },
     {
@@ -109,7 +109,7 @@
       "authority": "checklist",
       "status": "canonical",
       "priority": 850,
-      "sha256": "a9023dac890737838a7be7404dbd86e487cb03c7dbb3994e2030eb13e9bc2a80",
+      "sha256": "0f047a5b847872c2b6e0c20d2213bbebc140f89f60965e9dd6a0750519963856",
       "indexed": true
     },
     {

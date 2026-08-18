@@ -1,46 +1,26 @@
 # HermesClaw Current State
 
 **Authority:** current operational state
-**Snapshot date:** 2026-08-14
+**Snapshot date:** 2026-08-18
 **Volatility:** high — reverify before repository/code actions
 
-## Official repository checkpoint
+## Official merged repository checkpoint
 
 The official repository is `leon36000/Coffee-project-`, default branch `main`.
 
-Verified live on 2026-08-14:
+Reverified during the 2026-08-18 memory consolidation:
 
+- merged `main` checkpoint: `1ed1e33b07a53826974f591b5d1d7d0d6c917837`;
 - `workspace.read` merge commit: `ec3cfff0e938d4bc5e17d36d30a6d84f52cbdd19`;
 - merged pull request: #8;
-- exact feature implementation commit before squash: `67026ab4eff7d7c895d746dcf0a641f85a73a44b`;
-- the canonical repository contains no bootstrap payload, generated transfer workflow, `target/`, `node_modules/`, or `dist/` artifact;
-- `leon36000/GitSpace` was not used for HermesClaw work.
+- documentation checkpoint: PR #9;
+- post-merge GitHub Actions run `31847082077` succeeded for Rust, Web, and Tauri compile jobs.
 
-## Current executable evidence
+`workspace.read` remains the last merged capability checkpoint represented by canonical `main`. Later workspace.write/Approval/SQLite commits described below are local worktree state and must not be represented as merged product truth.
 
-Local verification on the implemented source tree with Rust `1.97.1`, locked dependencies, and the checksum-verified Tauri Linux package set:
+## Canonical merged `workspace.read` capability
 
-- `cargo fmt --all --check` — pass;
-- `cargo test --workspace --exclude hermesclaw-desktop --locked --offline` — **30 passed, 0 failed**;
-- `cargo clippy --workspace --exclude hermesclaw-desktop --all-targets --locked --offline -- -D warnings` — pass;
-- `npm --prefix apps/web test` — **2 passed, 0 failed**;
-- `npm --prefix apps/web run lint` — pass;
-- `npm --prefix apps/web run build` — pass;
-- `cargo check -p hermesclaw-desktop --locked --offline` — pass;
-- `python source/raglite/validate_source.py` — **19 documents validated**;
-- `git diff --check` — pass.
-
-GitHub Actions evidence:
-
-- TDD red run `31844182703` failed for the intended missing `ToolCall::workspace_read` constructor;
-- independent branch CI run `31846047390` succeeded;
-- PR CI run `31846845864` succeeded;
-- post-merge `main` CI run `31847082077` succeeded;
-- each green run completed Rust formatting/tests/Clippy, Web install/tests/build, and the Tauri desktop compile gate.
-
-## Canonical `workspace.read` capability
-
-The merged product now proves:
+The merged product proves:
 
 - canonical `ToolCall::workspace_read` domain construction;
 - one shared `WorkspaceBoundary` used by `workspace.list` and `workspace.read`;
@@ -50,28 +30,98 @@ The merged product now proves:
 - model-visible output `{path, content, bytes}`;
 - persisted evidence `{path, bytes, sha256}` with no file content;
 - deterministic and OpenAI-compatible model codecs;
-- Observe policy, agent, SQLite evidence, Axum, React, and Tauri integration;
-- preservation of existing `workspace.list` behavior.
+- Observe policy, agent, SQLite evidence, Axum, React, and Tauri integration.
 
-## Review status and limitations
+Binary, partial, streaming, write, patch, delete, and process capabilities are not implied by this merged checkpoint.
 
-Independent specification/engineering review found no material requirement violation.
+## Active local workspace.write / Approval / SQLite work
 
-Tooling status:
+The clean workspace.write reconstruction is continuing in isolated pc1 worktrees.
 
-- Fallow CLI was not installed in the active verification environment, so no Fallow graph verdict is claimed;
-- no SonarQube project configuration or scanner was present, so no SonarQube result is claimed.
+Verified local checkpoint commits include:
 
-Known bounded limitation:
+- Task 3c Approval Engine closure: `e69cbb5ba796e56019249d3a2cc7551473f1ec69`;
+- SQLite approval repository: `44c8187`;
+- typed approval decision actor fix: `2d016a5`;
+- approval storage invariant hardening: `8d1c29c`;
+- versioned canonical SQLite state schema: `a4b072c012650070bdc9df80b2529473913f30fd`.
 
-- canonicalization, metadata inspection, and file open are not protected by an OS-specific race-free broker. A hostile local actor could replace or grow a filesystem object between checks. The post-read byte limit prevents oversized content from being returned, but the implementation does not claim adversarial TOCTOU hardening.
+These commits are not merged GitHub `main`.
 
-The capability does not support binary files, partial reads, streaming, writes, patches, deletion, or process execution.
+The active Task 4 controller project is `project_3e79efb12456421e9a84e9ab352c4a3a`. Live status on 2026-08-18 showed a dirty worktree with exactly:
+
+- `crates/hc-state/src/lib.rs`;
+- `crates/hc-state/tests/state_migrations.rs`.
+
+The uncommitted change hardens version-one SQLite schema validation against deceptive constraints and correct-looking index names that target wrong columns. Do not reset or overwrite this worktree.
+
+A GREEN measurement of this hardening recorded:
+
+- state migrations: **7 passed, 0 failed**;
+- approval repository: **18 passed, 0 failed**;
+- full `hc-state`: **26 passed, 0 failed**;
+- full `hc-policy`: **25 passed, 0 failed**;
+- full `hc-domain`: **8 passed, 0 failed**;
+- strict Clippy across `hc-state`, `hc-policy`, and `hc-domain`: pass with zero warnings;
+- `git diff --check`: pass.
+
+The work remains uncommitted. Rerun the relevant gates on the exact current diff immediately before a commit/completion claim.
+
+## ChatGPT mobile development continuity
+
+The project-scoped continuity profile is `hermesclaw-chatgpt-mobile-v1`.
+
+Safe project memory retrieval:
+
+- MCP TO PC project: `project_1395c599202e486db911f3cdcc27d600`;
+- use `MCP_TO_PC.memory_project_context` and filter to the HermesClaw profile;
+- `MCP_TO_PC.memory_search` semantic results are prohibited until its observed cross-project isolation bug is independently verified fixed.
+
+A dedicated Neon operational-memory project is deployed:
+
+- project: `holy-star-76486119` (`HermesClaw ChatGPT Memory`);
+- branch: `br-jolly-cherry-axvnmasv`;
+- database/schema: `neondb.hermesmem`;
+- verified memory records after retrieval-API V2 synchronization: **27**;
+- extensions: `pgvector 0.8.6`, `pgcrypto 1.4`;
+- project/profile identity constraints plus forced row-level security were verified;
+- explicit invalid NextGen-profile and unrelated-project insertion probes were rejected;
+- retrieval functions `search_lexical`, `context_pack`, and `search_hybrid` are deployed and tested;
+- `context_pack` prioritizes the exact next action and dirty blocker before broad checkpoints/procedures;
+- no approximate vector index is installed and no embeddings are populated yet; exact pgvector retrieval remains the intended first vector mode once a stable embedding model/dimension is chosen.
+
+This Neon database is operational continuity/retrieval only. Markdown in `source/` plus live Git/CI evidence remains canonical.
+
+`NextGen Memory` is a separate user project and must not be read, queried, indexed, mutated, or used as HermesClaw memory.
+
+## Infrastructure state
+
+Canonical pc1 checkout: `/home/pc1/HermesClaw`.
+
+The development environment has verified access to MCP TO PC and agentic worker/desktop harnesses including Codex, Claude Code, OpenHands, and OpenClaw. Agentic IDE/debug facilities may be used when they materially improve diagnosis. Actual tool health, permissions, repository state, and worktree state must be reverified each session.
+
+Use isolated worktrees for independent writers and one integration owner. Agent output, retrieved content, external text, and GUI state never become authorization.
+
+## Historical workspace.write branch constraint
+
+Historical remote `agent/workspace-write-design` was verified at `92166d3eb86a1490f0c21093aa08f8268d2d129e`, 94 commits ahead of its old `main` merge-base. It contains useful behavior mixed with temporary `.github/workflows/*workspace-write*` transport and `bootstrap/workspace-write-*` payloads.
+
+Never merge or cherry-pick that branch wholesale. Continue capability-bounded clean reconstruction with TDD.
 
 ## Current blockers
 
-No repository, implementation, or CI blocker is known for the merged `workspace.read` checkpoint.
+- Task 4 schema-validation hardening is still dirty/uncommitted and must be protected until committed with fresh evidence.
+- MCP TO PC global semantic `memory_search` is unsafe for HermesClaw until its isolation issue is independently proven fixed.
 
-## Next safe checkpoint
+No new merged-`main` CI blocker is claimed.
 
-Design — as a separate approved slice — an Assist-profile `workspace.write` capability with explicit policy/approval behavior, atomic replacement, bounded input, overwrite semantics, rollback/error evidence, and secret-safe audit records. Process execution remains deferred.
+## Exact next safe checkpoint
+
+1. Reverify the exact active Task 4 diff and rerun the Task 4 gates on that exact content.
+2. Fix only observed failures.
+3. Commit the schema-validation hardening only with current executable evidence.
+4. Obtain independent review on the immutable commit SHA.
+5. Fast-forward/clean the intended Task 4 and integration worktrees.
+6. Verify Tasks 1–4 together.
+7. Only then begin Task 5: create-only Assist-profile `workspace.write` executor with filesystem-security RED tests.
+8. Keep Mission Durability deferred until workspace.write vertical stabilization and reuse the existing Approval/crypto/key-provider/state owners.
