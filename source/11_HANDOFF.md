@@ -68,9 +68,17 @@ Project continuity profile:
 - Neon branch: `br-jolly-cherry-axvnmasv`;
 - database/schema: `neondb.hermesmem`.
 
-On 2026-08-18 the complete project-scoped MCP memory snapshot was imported into the dedicated Neon store and the V2 operational decisions were synchronized. Verification showed **26 memory records** after synchronization.
+On 2026-08-18 the complete project-scoped MCP memory snapshot was imported into the dedicated Neon store and the V2 operational decisions were synchronized. Verification showed **27 memory records** after deployment of the retrieval API.
 
 The schema includes project/profile isolation, forced RLS, provenance, authority/epistemic/verification state, truth plane, integration state, temporal validity, full-text retrieval, optional pgvector embeddings, checkpoints, relations, retrieval receipts, utility feedback, and sync receipts. Isolation probes attempting a NextGen profile and an unrelated project identity were rejected. `pgvector 0.8.6` and `pgcrypto 1.4` are active.
+
+Verified retrieval functions:
+
+- `hermesmem.context_pack(query, limit)` — HOT continuity first; exact next action and dirty blocker precede broad checkpoints/procedures;
+- `hermesmem.search_lexical(query, limit)` — PostgreSQL full-text retrieval;
+- `hermesmem.search_hybrid(query, embedding, limit)` — lexical + exact pgvector candidates combined with RRF when a compatible embedding is supplied.
+
+No embeddings are currently populated and no HNSW/IVFFlat index is installed. This is intentional until a stable embedding model/dimension and measured scale requirement exist.
 
 No connection secret is stored in project memory.
 
