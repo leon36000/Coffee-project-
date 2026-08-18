@@ -82,10 +82,13 @@ A dedicated Neon operational-memory project is deployed:
 - project: `holy-star-76486119` (`HermesClaw ChatGPT Memory`);
 - branch: `br-jolly-cherry-axvnmasv`;
 - database/schema: `neondb.hermesmem`;
-- verified memory records after V2 synchronization: **26**;
+- verified memory records after retrieval-API V2 synchronization: **27**;
 - extensions: `pgvector 0.8.6`, `pgcrypto 1.4`;
 - project/profile identity constraints plus forced row-level security were verified;
-- explicit invalid NextGen-profile and unrelated-project insertion probes were rejected.
+- explicit invalid NextGen-profile and unrelated-project insertion probes were rejected;
+- retrieval functions `search_lexical`, `context_pack`, and `search_hybrid` are deployed and tested;
+- `context_pack` prioritizes the exact next action and dirty blocker before broad checkpoints/procedures;
+- no approximate vector index is installed and no embeddings are populated yet; exact pgvector retrieval remains the intended first vector mode once a stable embedding model/dimension is chosen.
 
 This Neon database is operational continuity/retrieval only. Markdown in `source/` plus live Git/CI evidence remains canonical.
 
