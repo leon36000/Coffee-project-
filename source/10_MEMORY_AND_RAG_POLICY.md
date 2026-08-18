@@ -52,7 +52,7 @@ For every substantive HermesClaw session:
 1. Read `00_PROJECT_CONSTITUTION.md`, `01_CANONICAL_FACTS.md`, `02_CANONICAL_DECISIONS.md`, and `03_CURRENT_STATE.md` in that order.
 2. Read task-specific architecture/workflow/source files.
 3. Retrieve `MCP_TO_PC.memory_project_context` for `project_1395c599202e486db911f3cdcc27d600` with a sufficiently large limit and keep only records for `hermesclaw-chatgpt-mobile-v1`.
-4. When the Neon connector is available, query only `holy-star-76486119` / `neondb` / `hermesmem`, starting with `hot_context`, then task-relevant current records.
+4. When the Neon connector is available, query only `holy-star-76486119` / `neondb` / `hermesmem`. Start with `context_pack(NULL, 24)` for HOT continuity; use `search_lexical` for exact/task terms and `search_hybrid` only when a compatible query embedding is available.
 5. Apply project/profile isolation, active/superseded status, authority, and verification state before lexical/vector relevance.
 6. Surface active blockers and exact next action before broad history.
 7. Reverify volatile Git, CI, branch, worktree, permissions, and tool-availability facts live before mutation.
@@ -78,7 +78,9 @@ The dedicated HermesClaw Neon schema must preserve:
 - checkpoints, relations, retrieval receipts, sync receipts, and utility feedback;
 - row-level security or stronger equivalent isolation.
 
-At small corpus sizes, exact vector search is acceptable. Add approximate indexes only after a stable embedding dimension and measured need; filtering/isolation must still happen before results are trusted.
+The canonical SQL retrieval surface is `hermesmem.context_pack`, `hermesmem.search_lexical`, and `hermesmem.search_hybrid`. `context_pack` must surface exact next action and active dirty blockers ahead of broad checkpoints/procedures. `search_hybrid` may combine PostgreSQL FTS and exact pgvector candidates with deterministic Reciprocal Rank Fusion, but truth authority and verification state remain explicit ranking dimensions.
+
+At small corpus sizes, exact vector search is preferred. Add approximate indexes only after a stable embedding model/dimension and measured scale/latency need; filtering/isolation must still happen before results are trusted.
 
 ## RAGLite / DuckDB role
 
