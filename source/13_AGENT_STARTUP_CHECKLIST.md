@@ -12,7 +12,8 @@ Before substantive work:
 - [ ] Read the task-specific architecture/workflow/source files.
 - [ ] Retrieve `MCP_TO_PC.memory_project_context(project_1395c599202e486db911f3cdcc27d600, limit>=50)`.
 - [ ] Keep only memory records for profile `hermesclaw-chatgpt-mobile-v1`.
-- [ ] If Neon is available, query only project `holy-star-76486119`, database `neondb`, schema `hermesmem`; inspect `hot_context` before broad retrieval.
+- [ ] If Neon is available, query only project `holy-star-76486119`, database `neondb`, schema `hermesmem`; start with `hermesmem.context_pack(NULL, 24)`.
+- [ ] Use `hermesmem.search_lexical` for task terms; use `hermesmem.search_hybrid` only when a compatible query embedding is available.
 - [ ] Never use `MCP_TO_PC.memory_search` semantic results until its project-isolation bug is independently verified fixed.
 - [ ] Never read/query/index/mutate `NextGen Memory` or GitSpace for HermesClaw.
 - [ ] Resolve the official GitHub repository, default branch, current contents, permissions, and relevant worktree live.
